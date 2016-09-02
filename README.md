@@ -1,2 +1,2 @@
 # spacedog-ios-sdk
-The SpaceDog platform iOS SDK
+The SpaceDog platform iOS SDK 
