@@ -11,7 +11,7 @@ import Alamofire
 import ObjectMapper
 import AlamofireObjectMapper
 
-//TODO: handle headers
+//TODO: handle headers.
 
 public class SpaceDogServices {
     
