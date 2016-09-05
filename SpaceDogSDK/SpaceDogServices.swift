@@ -36,7 +36,7 @@ public class SpaceDogServices {
         }
     }
     
-    public func post<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
+    public func post<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
         guard appName != nil else {
             print(APP_NAME_MANDATORY_ERROR)
             return
@@ -44,7 +44,7 @@ public class SpaceDogServices {
         
         let url = "https://\(appName!).spacedog.io/\(urlPath)"
         
-        Alamofire.request(.POST, url, parameters: parameters, encoding: .JSON).responseJSON { response in
+        Alamofire.request(.POST, url, parameters: parameters, encoding: .JSON, headers: headers).responseJSON { response in
             self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
         }
     }
@@ -68,7 +68,7 @@ public class SpaceDogServices {
             return
         }
         
-        post(urlPath, parameters: parameters, successHandler: successHandler, failureHandler: failureHandler)
+        post(urlPath, parameters: parameters, headers: nil, successHandler: successHandler, failureHandler: failureHandler)
     }
     
     public func installPushNotifications(deviceToken: String, appId: String, sandbox: Bool, successHandler: (Void) -> Void, failureHandler: (Void) -> Void) {
@@ -79,7 +79,7 @@ public class SpaceDogServices {
         
         let parameters = ["token": deviceToken, "appId": appId, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
         
-        post("1/installation", parameters: parameters,
+        post("1/installation", parameters: parameters, headers: nil,
              successHandler: { (result: SDResponse) in
                 print("Successfully subscribed to SpaceDog Push Notifications service: \(result)")
                 successHandler()
@@ -110,5 +110,4 @@ public class SpaceDogServices {
             failureHandler(res)
         }
     }
-    
 }
