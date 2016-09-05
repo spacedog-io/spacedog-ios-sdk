@@ -38,9 +38,9 @@ public class SpaceDogServices {
         }
     }
 
-   public static func post<T: Mappable>(url: String, parameters: [String: AnyObject]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
+   public static func post<T: Mappable>(url: String, parameters: [String: AnyObject]?, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
         
-        Alamofire.request(.POST, url, parameters: parameters, encoding: .JSON).responseJSON { response in
+        Alamofire.request(.POST, url, parameters: parameters, encoding: .JSON, headers: headers).responseJSON { response in
             
             if let code = response.response?.statusCode where 200..<300 ~= code {
                 let object = Mapper<T>().map(response.result.value)!
@@ -87,7 +87,7 @@ public class SpaceDogServices {
     }
     
    public static func search<T: Mappable>(url: String, parameters: [String: AnyObject]?, successHandler: (SDSearch<T>) -> Void, failureHandler: (SDResponse) -> Void) {
-        self.post(url, parameters: parameters, successHandler: successHandler, failureHandler: failureHandler)
+        self.post(url, parameters: parameters, headers: nil, successHandler: successHandler, failureHandler: failureHandler)
     }
     
 }
