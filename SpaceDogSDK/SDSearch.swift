@@ -14,7 +14,7 @@ public class SDSearch<T: Mappable>: Mappable {
     public var took: Int?
     public var total: Int?
     public var results: [T]?
-    
+
     required public init?(_ map: Map) {
         
     }
