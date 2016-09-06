@@ -51,6 +51,20 @@ public class SpaceDogServices {
         )
     }
     
+    public func logout(successHandler: ((Void) -> Void)? = nil, failureHandler: ((Void) -> Void)? = nil) {
+        
+        get("1/logout", headers: nil, successHandler: { (result: SDResponse) in
+            print("Successfully logged out of SpaceDog \(result.success)")
+            
+            self.accessToken = nil
+            
+            successHandler?()
+        }, failureHandler: { (errorResponse: SDResponse) in
+            print("Error when trying to logout of SpaceDog: \(errorResponse.error?.message)")
+            failureHandler?()
+        })
+    }
+    
     public func get<T: Mappable>(urlPath: String, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
         guard appName != nil else {
             print(APP_NAME_MANDATORY_ERROR)
