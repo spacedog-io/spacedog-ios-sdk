@@ -25,7 +25,7 @@ public class SpaceDogServices {
     init() {
     }
     
-    public func login(username: String, password: String, successHandler: (Void) -> Void, failureHandler: (Void) -> Void) {
+    public func login(username: String, password: String, successHandler: ((Void) -> Void)? = nil, failureHandler: ((Void) -> Void)? = nil) {
         guard appName != nil else {
             print(APP_NAME_MANDATORY_ERROR)
             return
@@ -42,11 +42,11 @@ public class SpaceDogServices {
                 
                 self.accessToken = session.accessToken
                 
-                successHandler()
+                successHandler?()
             },
              failureHandler: { (errorResponse) in
                 print("Error while logging to SpaceDog: \(errorResponse.error?.message)")
-                failureHandler()
+                failureHandler?()
             }
         )
     }
@@ -160,6 +160,22 @@ public class SpaceDogServices {
     private func handleResponse<T: Mappable>(response: Response<AnyObject, NSError>, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
         if let code = response.response?.statusCode where 200..<300 ~= code {
             let object = Mapper<T>().map(response.result.value)!
+            
+            if let responseData = String(data: response.data!, encoding: NSUTF8StringEncoding) {
+                print("---- WS SUCCESS ----")
+                print("RESPONSE: \(responseData)")
+                print("REQUEST HEADER: \(response.request?.HTTPMethod) \(response.request?.URLString)")
+                
+                if let requestBodyData = response.request?.HTTPBody {
+                    do {
+                        let requestJSONBody = try NSJSONSerialization.JSONObjectWithData(requestBodyData, options: .AllowFragments)
+                        
+                        print("REQUEST BODY: \(response.request?.HTTPMethod) \(response.request?.URLString) with data: \(requestJSONBody)")
+                    } catch {}
+                }
+                print("---- END -----")
+            }
+            
             successHandler(object)
         }
         else {
@@ -173,6 +189,19 @@ public class SpaceDogServices {
             else {
                 res = Mapper<SDResponse>().map(response.result.value)
             }
+            
+            print("---- WS FAILURE ----")
+            print("ERROR: \(res.error?.type): \(res.error?.message)")
+            
+            if let requestBodyData = response.request?.HTTPBody {
+                do {
+                    let requestJSONBody = try NSJSONSerialization.JSONObjectWithData(requestBodyData, options: .AllowFragments)
+                    
+                    print("REQUEST: \(response.request?.HTTPMethod) \(response.request?.URLString) with data: \(requestJSONBody)")
+                } catch {}
+                print("---- END -----")
+            }
+            
             failureHandler(res)
         }
     }
