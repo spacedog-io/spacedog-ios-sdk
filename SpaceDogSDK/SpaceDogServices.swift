@@ -139,29 +139,60 @@ public class SpaceDogServices {
         
         let parameters = ["token": deviceToken, "appId": appId, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
         
-        post("1/installation", parameters: parameters, headers: nil,
-             successHandler: { (result: SDResponse) in
-                print("Successfully subscribed to SpaceDog Push Notifications service: \(result)")
-                successHandler()
-            },
-             failureHandler: { (errorResponse) in
-                print("Error while subscribing to SpaceDog Push Notifications service: \(errorResponse.error?.message)")
-                failureHandler()
-            }
-        )
+        if let savedPushNotificationsId = retrievePushNotificationsId() {
+            put("1/installation/\(savedPushNotificationsId)", parameters: parameters, headers: nil,
+                 successHandler: { (result: SDResponse) in
+                    print("Successfully updated subscribtion to SpaceDog Push Notifications service: \(result)")
+                    
+                    successHandler()
+                },
+                 failureHandler: { (errorResponse) in
+                    print("Error trying update subscribtion to SpaceDog Push Notifications service: \(errorResponse.error?.message)")
+                    failureHandler()
+                }
+            )
+        } else {
+            post("1/installation", parameters: parameters, headers: nil,
+                 successHandler: { (result: SDResponse) in
+                    print("Successfully subscribed to SpaceDog Push Notifications service: \(result)")
+                    
+                    if let pushNotificationsId = result.id {
+                        self.savePushNotificationsId(pushNotificationsId)
+                    }
+                    
+                    successHandler()
+                },
+                 failureHandler: { (errorResponse) in
+                    print("Error while subscribing to SpaceDog Push Notifications service: \(errorResponse.error?.message)")
+                    failureHandler()
+                }
+            )
+        }
     }
     
-    public func sendPushNotification(appId: String, message: String, successHandler: (Void) -> Void, failureHandler: (Void) -> Void) {
+    private func savePushNotificationsId(id: String) {
+        let ud = NSUserDefaults.standardUserDefaults()
+        ud.setValue(id, forKey: "spacedog_push_notifications_id")
+        ud.synchronize()
+    }
+    
+    private func retrievePushNotificationsId() -> String? {
+        let ud = NSUserDefaults.standardUserDefaults()
+        return ud.valueForKey("spacedog_push_notifications_id") as? String
+    }
+    
+    public func sendPushNotification(appId: String, message: [String: AnyObject], sandbox: Bool, successHandler: (Void) -> Void, failureHandler: (Void) -> Void) {
         guard appName != nil else {
             print(APP_NAME_MANDATORY_ERROR)
             return
         }
         
-        let parameters = ["appId": appId, "message": message]
+        let parameters: [String: AnyObject] = ["appId": appId, "message": message, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
         
         post("1/installation/push", parameters: parameters, headers: nil,
              successHandler: { (result: SDResponse) in
                 print("Successfully pushed a notification: \(result)")
+                
                 successHandler()
             },
              failureHandler: { (errorResponse) in
