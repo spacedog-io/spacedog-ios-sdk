@@ -22,8 +22,7 @@ public class SpaceDogServices {
     
     var appName : String?
     
-    init() {
-    }
+    init() {}
     
     public func login(username: String, password: String, successHandler: ((Void) -> Void)? = nil, failureHandler: ((Void) -> Void)? = nil) {
         guard appName != nil else {
