@@ -18,7 +18,7 @@ public class SpaceDogServices {
     
     static let sharedInstance = SpaceDogServices()
     
-    private var accessToken: String?
+    var accessToken: String?
     
     var appName : String?
     
