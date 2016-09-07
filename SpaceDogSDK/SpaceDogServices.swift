@@ -151,17 +151,18 @@ public class SpaceDogServices {
         )
     }
     
-    public func sendPushNotification(appId: String, message: String, successHandler: (Void) -> Void, failureHandler: (Void) -> Void) {
+    public func sendPushNotification(appId: String, message: [String: AnyObject], sandbox: Bool, successHandler: (Void) -> Void, failureHandler: (Void) -> Void) {
         guard appName != nil else {
             print(APP_NAME_MANDATORY_ERROR)
             return
         }
         
-        let parameters = ["appId": appId, "message": message]
+        let parameters: [String: AnyObject] = ["appId": appId, "message": message, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
         
         post("1/installation/push", parameters: parameters, headers: nil,
              successHandler: { (result: SDResponse) in
                 print("Successfully pushed a notification: \(result)")
+                
                 successHandler()
             },
              failureHandler: { (errorResponse) in
