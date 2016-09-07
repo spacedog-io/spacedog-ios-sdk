@@ -30,6 +30,7 @@ public class SpaceDogServices {
             return
         }
         
+        self.accessToken = nil
         let credentialData = "\(username):\(password)".dataUsingEncoding(NSUTF8StringEncoding)!
         let base64Credentials = credentialData.base64EncodedStringWithOptions([])
         
@@ -45,6 +46,7 @@ public class SpaceDogServices {
             },
              failureHandler: { (errorResponse) in
                 print("Error while logging to SpaceDog: \(errorResponse.error?.message)")
+                self.accessToken = nil
                 failureHandler?()
             }
         )
@@ -60,6 +62,8 @@ public class SpaceDogServices {
             successHandler?()
         }, failureHandler: { (errorResponse: SDResponse) in
             print("Error when trying to logout of SpaceDog: \(errorResponse.error?.message)")
+            self.accessToken = nil
+    
             failureHandler?()
         })
     }
