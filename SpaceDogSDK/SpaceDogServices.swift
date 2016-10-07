@@ -87,6 +87,36 @@ public class SpaceDogServices {
         }
     }
     
+    
+    typealias CustomEncoding = (URLRequestConvertible, [String:AnyObject]?) -> (NSMutableURLRequest, NSError?)
+
+    private func UTF8JSONEncoding() -> CustomEncoding {
+        let encoding: CustomEncoding = { URLRequest, parameters in
+            
+            let mutableURLRequest = URLRequest.URLRequest
+            guard let parameters = parameters else { return (mutableURLRequest, nil) }
+            
+            var encodingError: NSError? = nil
+            
+            do {
+                let options = NSJSONWritingOptions()
+                let data = try NSJSONSerialization.dataWithJSONObject(parameters, options: options)
+                
+                if mutableURLRequest.valueForHTTPHeaderField("Content-Type") == nil {
+                    mutableURLRequest.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
+                }
+                
+                mutableURLRequest.HTTPBody = data
+            } catch {
+                encodingError = error as NSError
+            }
+            
+            return (mutableURLRequest, encodingError)
+        }
+
+        return encoding
+    }
+    
     public func post<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
         guard appName != nil else {
             print(APP_NAME_MANDATORY_ERROR)
@@ -101,7 +131,8 @@ public class SpaceDogServices {
         
         let url = "https://\(appName!).spacedog.io/\(urlPath)"
         
-        Alamofire.request(.POST, url, parameters: parameters, encoding: .JSON, headers: theHeaders).responseJSON { response in
+        
+        Alamofire.request(.POST, url, parameters: parameters, encoding: .Custom(UTF8JSONEncoding()), headers: theHeaders).responseJSON { response in
             self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
         }
     }
@@ -120,7 +151,7 @@ public class SpaceDogServices {
         
         let url = "https://\(appName!).spacedog.io/\(urlPath)"
         
-        Alamofire.request(.PUT, url, parameters: parameters, encoding: .JSON, headers: theHeaders).responseJSON { response in
+        Alamofire.request(.PUT, url, parameters: parameters, encoding: .Custom(UTF8JSONEncoding()), headers: theHeaders).responseJSON { response in
             self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
         }
     }
