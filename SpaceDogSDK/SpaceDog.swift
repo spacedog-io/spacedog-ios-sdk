@@ -1,10 +1,12 @@
 //
-//  SpaceDogServices.swift
-//  caremendriver
+//  SpaceDog.swift
+//  SpaceDog-SDK-iOS
 //
-//  Created by flav on 29/08/2016.
-//  Copyright © 2016 intact. All rights reserved.
+//  Created by philippe.rolland on 13/10/2016.
+//  Copyright © 2016 in-tact. All rights reserved.
 //
+
+import Foundation
 
 import Foundation
 import Alamofire
@@ -23,7 +25,7 @@ public enum SDException: ErrorType {
     case BadRequest
 }
 
-public class SpaceDogServices {
+public class SpaceDog {
     
     let baseUrl: String
     let loginUrl: String
@@ -55,7 +57,7 @@ public class SpaceDogServices {
         let base64Credentials = credentialData.base64EncodedStringWithOptions([])
         
         request(method: Method.POST, url: self.loginUrl, auth: "Basic \(base64Credentials)",
-             successHandler: { (session: SDSession) in
+            successHandler: { (session: SDSession) in
                 if let token = session.accessToken, expiresIn = session.expiresIn {
                     let credentials = SDCredentials(userId: username, userToken: token, expiresIn: expiresIn, acquired: NSDate())
                     self.context.setLogged(with: credentials)
@@ -65,7 +67,7 @@ public class SpaceDogServices {
                     failureHandler(SDException.Unauthorized)
                 }
             },
-             failureHandler: { (exception) in
+            failureHandler: { (exception) in
                 print("Error while logging to SpaceDog: \(exception)")
                 failureHandler(exception)
             }
@@ -76,13 +78,13 @@ public class SpaceDogServices {
         request(method: Method.GET, url: self.logoutUrl, auth: self.bearer(), successHandler: { (result: SDResponse) in
             print("Successfully logged out of SpaceDog \(result.success)")
             successHandler?()
-        }, failureHandler: { (exception: SDException) in
-            print("Error when trying to logout of SpaceDog: \(exception)")
-            failureHandler?(exception)
+            }, failureHandler: { (exception: SDException) in
+                print("Error when trying to logout of SpaceDog: \(exception)")
+                failureHandler?(exception)
         })
     }
     
-    public func get<T: Mappable>(entity: String, entityId: String, successHandler: (T) -> Void, failureHandler: (SDException) -> Void) {
+    public func get<T: Mappable>(entity entity: String, entityId: String, successHandler: (T) -> Void, failureHandler: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)/\(entityId)"
         self.request(
             method: Method.GET,
@@ -92,7 +94,7 @@ public class SpaceDogServices {
             failureHandler: failureHandler)
     }
     
-    public func create<T: Mappable>(entity: String, value: T, successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
+    public func create<T: Mappable>(entity entity: String, value: T, successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)"
         self.request(
             method: Method.POST,
@@ -103,7 +105,7 @@ public class SpaceDogServices {
             failureHandler: failureHandler)
     }
     
-    public func update<T: Mappable>(entity: String, entityId: String, value: T, successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
+    public func update<T: Mappable>(entity entity: String, entityId: String, value: T, successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)/\(entityId)"
         self.request(
             method: Method.PUT,
@@ -114,7 +116,18 @@ public class SpaceDogServices {
             failureHandler: failureHandler)
     }
     
-    public func search<T: Mappable>(entity: String, query: [String: AnyObject]?, successHandler: (SDSearch<T>) -> Void, failureHandler: (SDException) -> Void) {
+    public func update(entity entity: String, entityId: String, partial: [String : AnyObject], successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
+        let url = "\(self.dataUrl)/\(entity)/\(entityId)"
+        self.request(
+            method: Method.PUT,
+            url: url,
+            auth: self.bearer(),
+            body: partial,
+            successHandler: {(r: SDResponse) in successHandler()},
+            failureHandler: failureHandler)
+    }
+    
+    public func search<T: Mappable>(entity entity: String, query: [String: AnyObject], successHandler: (SDSearch<T>) -> Void, failureHandler: (SDException) -> Void) {
         let url = "\(self.searchUrl)/\(entity)"
         self.request(
             method: Method.POST,
@@ -152,7 +165,7 @@ public class SpaceDogServices {
     
     
     typealias CustomEncoding = (URLRequestConvertible, [String:AnyObject]?) -> (NSMutableURLRequest, NSError?)
-
+    
     private func UTF8JSONEncoding() -> CustomEncoding {
         let encoding: CustomEncoding = { URLRequest, parameters in
             
@@ -176,63 +189,63 @@ public class SpaceDogServices {
             
             return (mutableURLRequest, encodingError)
         }
-
+        
         return encoding
     }
     
     /*
-    public func get<T: Mappable>(urlPath: String, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
-        
-        var theHeaders = [String:String]()
-        if let inputHeaders = headers {
-            theHeaders = inputHeaders
-        }
-        addBearerToHeaders(&theHeaders)
-        
-        let url = "https://\(appName).spacedog.io/\(urlPath)"
-        
-        Alamofire.request(.GET, url, headers: theHeaders).responseJSON { response in
-            self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
-        }
-    }
-
-    
-    public func post<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
-        
-        var theHeaders = [String:String]()
-        if let inputHeaders = headers {
-            theHeaders = inputHeaders
-        }
-        addBearerToHeaders(&theHeaders)
-        
-        let url = "https://\(appName).spacedog.io/\(urlPath)"
-        
-        
-        Alamofire.request(.POST, url, parameters: parameters, encoding: .Custom(UTF8JSONEncoding()), headers: theHeaders).responseJSON { response in
-            self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
-        }
-    }
-    
-    public func put<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
-
-        
-        var theHeaders = [String:String]()
-        if let inputHeaders = headers {
-            theHeaders = inputHeaders
-        }
-        addBearerToHeaders(&theHeaders)
-        
-        let url = "https://\(appName).spacedog.io/\(urlPath)"
-        
-        Alamofire.request(.PUT, url, parameters: parameters, encoding: .Custom(UTF8JSONEncoding()), headers: theHeaders).responseJSON { response in
-            self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
-        }
-    }
-    
-    public func search<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, successHandler: (SDSearch<T>) -> Void, failureHandler: (SDResponse) -> Void) {
-        
-        post(urlPath, parameters: parameters, headers: nil, successHandler: successHandler, failureHandler: failureHandler)
-    }
+     public func get<T: Mappable>(urlPath: String, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
+     
+     var theHeaders = [String:String]()
+     if let inputHeaders = headers {
+     theHeaders = inputHeaders
+     }
+     addBearerToHeaders(&theHeaders)
+     
+     let url = "https://\(appName).spacedog.io/\(urlPath)"
+     
+     Alamofire.request(.GET, url, headers: theHeaders).responseJSON { response in
+     self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
+     }
+     }
+     
+     
+     public func post<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
+     
+     var theHeaders = [String:String]()
+     if let inputHeaders = headers {
+     theHeaders = inputHeaders
+     }
+     addBearerToHeaders(&theHeaders)
+     
+     let url = "https://\(appName).spacedog.io/\(urlPath)"
+     
+     
+     Alamofire.request(.POST, url, parameters: parameters, encoding: .Custom(UTF8JSONEncoding()), headers: theHeaders).responseJSON { response in
+     self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
+     }
+     }
+     
+     public func put<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
+     
+     
+     var theHeaders = [String:String]()
+     if let inputHeaders = headers {
+     theHeaders = inputHeaders
+     }
+     addBearerToHeaders(&theHeaders)
+     
+     let url = "https://\(appName).spacedog.io/\(urlPath)"
+     
+     Alamofire.request(.PUT, url, parameters: parameters, encoding: .Custom(UTF8JSONEncoding()), headers: theHeaders).responseJSON { response in
+     self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
+     }
+     }
+     
+     public func search<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, successHandler: (SDSearch<T>) -> Void, failureHandler: (SDResponse) -> Void) {
+     
+     post(urlPath, parameters: parameters, headers: nil, successHandler: successHandler, failureHandler: failureHandler)
+     }
      */
     
     public func installPushNotifications(deviceToken: String, appId: String, sandbox: Bool, successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
@@ -290,7 +303,7 @@ public class SpaceDogServices {
             switch httpresponse.statusCode {
             case (200 ..< 300) :
                 let object = Mapper<T>().map(response.result.value)!
-                    
+                
                 if let responseData = String(data: response.data!, encoding: NSUTF8StringEncoding) {
                     print("---- WS SUCCESS ----")
                     print("RESPONSE: \(responseData)")
@@ -327,3 +340,4 @@ public class SpaceDogServices {
     }
     
 }
+
