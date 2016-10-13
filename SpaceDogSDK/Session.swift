@@ -9,17 +9,16 @@
 import Foundation
 import ObjectMapper
 
-class Session: Mappable {
+public class SDSession: Mappable {
     
     var accessToken: String?
     var expiresIn: Int?
     
     
-    required init?(_ map: Map) {
-        
+    required public init?(_ map: Map) {
     }
     
-    func mapping(map: Map) {
+    public func mapping(map: Map) {
         accessToken   <- map["accessToken"]
         expiresIn     <- map["expiresIn"]
     }
