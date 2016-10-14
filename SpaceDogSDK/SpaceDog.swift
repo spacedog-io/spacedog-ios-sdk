@@ -99,14 +99,14 @@ public class SpaceDog {
             error: error)
     }
     
-    public func create<T: Mappable>(entity entity: String, value: T, success: (Void) -> Void, error: (SDException) -> Void) {
+    public func create<T: Mappable>(entity entity: String, value: T, success: (String) -> Void, error: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)"
         self.request(
             method: Method.POST,
             url: url,
             auth: self.bearer(),
             body: value.toJSON(),
-            success: {(r: SDResponse) in success()},
+            success: {(r: SDResponse) in success(r.id!)},
             error: error)
     }
     
