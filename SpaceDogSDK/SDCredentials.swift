@@ -9,7 +9,7 @@
 import Foundation
 
 
-public class SDCredentials {
+public class SDCredentials : CustomStringConvertible {
     let userId: String
     let userToken: String
     let expiresIn: Int
@@ -20,5 +20,9 @@ public class SDCredentials {
         self.userToken = userToken
         self.expiresIn = expiresIn
         self.acquired = acquired
+    }
+    
+    public var description: String {
+        return "{userId: \(userId), userToken: \(userToken), expiresIn: \(expiresIn), acquired: \(acquired) }"
     }
 }

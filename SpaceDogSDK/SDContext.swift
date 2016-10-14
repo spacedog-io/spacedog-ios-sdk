@@ -8,7 +8,7 @@
 
 import Foundation
 
-public class SDContext {
+public class SDContext : CustomStringConvertible {
     let instanceId: String
     var credentials: SDCredentials?
     
@@ -22,5 +22,17 @@ public class SDContext {
     
     public func isLogged() -> Bool {
         return self.credentials != nil
+    }
+    
+    public func setLoggedOut() -> Void {
+        self.credentials = nil
+    }
+    
+    public var description: String {
+        if let credentials = self.credentials {
+            return "{instanceId: \(instanceId), credentials: \(credentials)}"
+        } else {
+            return "{instanceId: \(instanceId), credentials: nil}"
+        }
     }
 }

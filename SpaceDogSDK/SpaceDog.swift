@@ -52,90 +52,95 @@ public class SpaceDog {
         self.init(from: SDContext(instanceId: instanceId))
     }
     
-    public func login(username: String, password: String, successHandler: ((SDCredentials) -> Void), failureHandler: ((SDException) -> Void)) {
+    public func login(username username: String, password: String, success: ((SDCredentials) -> Void), error: ((SDException) -> Void)) {
         let credentialData = "\(username):\(password)".dataUsingEncoding(NSUTF8StringEncoding)!
         let base64Credentials = credentialData.base64EncodedStringWithOptions([])
         
         request(method: Method.POST, url: self.loginUrl, auth: "Basic \(base64Credentials)",
-            successHandler: { (session: SDSession) in
+            success: { (session: SDSession) in
                 if let token = session.accessToken, expiresIn = session.expiresIn {
                     let credentials = SDCredentials(userId: username, userToken: token, expiresIn: expiresIn, acquired: NSDate())
                     self.context.setLogged(with: credentials)
                     print("Successfully logged in to SpaceDog: \(session.accessToken)")
-                    successHandler(credentials)
+                    success(credentials)
                 } else {
-                    failureHandler(SDException.Unauthorized)
+                    error(SDException.Unauthorized)
                 }
             },
-            failureHandler: { (exception) in
+            error: { (exception) in
                 print("Error while logging to SpaceDog: \(exception)")
-                failureHandler(exception)
+                error(exception)
             }
         )
     }
     
-    public func logout(successHandler: ((Void) -> Void)? = nil, failureHandler: ((SDException) -> Void)? = nil) {
-        request(method: Method.GET, url: self.logoutUrl, auth: self.bearer(), successHandler: { (result: SDResponse) in
-            print("Successfully logged out of SpaceDog \(result.success)")
-            successHandler?()
-            }, failureHandler: { (exception: SDException) in
+    public func logout(success success: ((Void) -> Void)? = nil, error: ((SDException) -> Void)? = nil) {
+        request(method: Method.GET, url: self.logoutUrl, auth: self.bearer(),
+            success: { (result: SDResponse) in
+                self.context.setLoggedOut()
+                print("Successfully logged out of SpaceDog \(result.success)")
+                success?()
+            },
+            error: { (exception: SDException) in
+                self.context.setLoggedOut()
                 print("Error when trying to logout of SpaceDog: \(exception)")
-                failureHandler?(exception)
-        })
+                error?(exception)
+            }
+        )
     }
     
-    public func get<T: Mappable>(entity entity: String, entityId: String, successHandler: (T) -> Void, failureHandler: (SDException) -> Void) {
+    public func get<T: Mappable>(entity entity: String, entityId: String, success: (T) -> Void, error: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)/\(entityId)"
         self.request(
             method: Method.GET,
             url: url,
             auth: self.bearer(),
-            successHandler: successHandler,
-            failureHandler: failureHandler)
+            success: success,
+            error: error)
     }
     
-    public func create<T: Mappable>(entity entity: String, value: T, successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
+    public func create<T: Mappable>(entity entity: String, value: T, success: (Void) -> Void, error: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)"
         self.request(
             method: Method.POST,
             url: url,
             auth: self.bearer(),
             body: value.toJSON(),
-            successHandler: {(r: SDResponse) in successHandler()},
-            failureHandler: failureHandler)
+            success: {(r: SDResponse) in success()},
+            error: error)
     }
     
-    public func update<T: Mappable>(entity entity: String, entityId: String, value: T, successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
+    public func update<T: Mappable>(entity entity: String, entityId: String, value: T, success: (Void) -> Void, error: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)/\(entityId)"
         self.request(
             method: Method.PUT,
             url: url,
             auth: self.bearer(),
             body: value.toJSON(),
-            successHandler: {(r: SDResponse) in successHandler()},
-            failureHandler: failureHandler)
+            success: {(r: SDResponse) in success()},
+            error: error)
     }
     
-    public func update(entity entity: String, entityId: String, partial: [String : AnyObject], successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
+    public func update(entity entity: String, entityId: String, partial: [String : AnyObject], success: (Void) -> Void, error: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)/\(entityId)"
         self.request(
             method: Method.PUT,
             url: url,
             auth: self.bearer(),
             body: partial,
-            successHandler: {(r: SDResponse) in successHandler()},
-            failureHandler: failureHandler)
+            success: {(r: SDResponse) in success()},
+            error: error)
     }
     
-    public func search<T: Mappable>(entity entity: String, query: [String: AnyObject], successHandler: (SDSearch<T>) -> Void, failureHandler: (SDException) -> Void) {
+    public func search<T: Mappable>(entity entity: String, query: [String: AnyObject], success: (SDSearch<T>) -> Void, error: (SDException) -> Void) {
         let url = "\(self.searchUrl)/\(entity)"
         self.request(
             method: Method.POST,
             url: url,
             auth: self.bearer(),
             body: query,
-            successHandler: successHandler,
-            failureHandler: failureHandler)
+            success: success,
+            error: error)
     }
     
     
@@ -144,8 +149,8 @@ public class SpaceDog {
         url: String,
         auth: String? = nil,
         body: [String: AnyObject]? = nil,
-        successHandler: (T) -> Void,
-        failureHandler: (SDException) -> Void) {
+        success: (T) -> Void,
+        error: (SDException) -> Void) {
         
         var headers = [String:String]()
         if let auth = auth {headers["Authorization"] = auth}
@@ -153,7 +158,7 @@ public class SpaceDog {
         if body != nil {encoding = ParameterEncoding.Custom(UTF8JSONEncoding())}
         
         Alamofire.request(method, url, parameters: body, encoding: encoding, headers: headers).responseJSON { response in
-            self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
+            self.handleResponse(response, success: success, error: error)
         }
         
     }
@@ -193,62 +198,7 @@ public class SpaceDog {
         return encoding
     }
     
-    /*
-     public func get<T: Mappable>(urlPath: String, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
-     
-     var theHeaders = [String:String]()
-     if let inputHeaders = headers {
-     theHeaders = inputHeaders
-     }
-     addBearerToHeaders(&theHeaders)
-     
-     let url = "https://\(appName).spacedog.io/\(urlPath)"
-     
-     Alamofire.request(.GET, url, headers: theHeaders).responseJSON { response in
-     self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
-     }
-     }
-     
-     
-     public func post<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
-     
-     var theHeaders = [String:String]()
-     if let inputHeaders = headers {
-     theHeaders = inputHeaders
-     }
-     addBearerToHeaders(&theHeaders)
-     
-     let url = "https://\(appName).spacedog.io/\(urlPath)"
-     
-     
-     Alamofire.request(.POST, url, parameters: parameters, encoding: .Custom(UTF8JSONEncoding()), headers: theHeaders).responseJSON { response in
-     self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
-     }
-     }
-     
-     public func put<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, headers: [String: String]?, successHandler: (T) -> Void, failureHandler: (SDResponse) -> Void) {
-     
-     
-     var theHeaders = [String:String]()
-     if let inputHeaders = headers {
-     theHeaders = inputHeaders
-     }
-     addBearerToHeaders(&theHeaders)
-     
-     let url = "https://\(appName).spacedog.io/\(urlPath)"
-     
-     Alamofire.request(.PUT, url, parameters: parameters, encoding: .Custom(UTF8JSONEncoding()), headers: theHeaders).responseJSON { response in
-     self.handleResponse(response, successHandler: successHandler, failureHandler: failureHandler)
-     }
-     }
-     
-     public func search<T: Mappable>(urlPath: String, parameters: [String: AnyObject]?, successHandler: (SDSearch<T>) -> Void, failureHandler: (SDResponse) -> Void) {
-     
-     post(urlPath, parameters: parameters, headers: nil, successHandler: successHandler, failureHandler: failureHandler)
-     }
-     */
-    
-    public func installPushNotifications(deviceToken: String, appId: String, sandbox: Bool, successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
+    public func installPushNotifications(deviceToken: String, appId: String, sandbox: Bool, success: () -> Void, error: (SDException) -> Void) {
         
         let parameters = ["token": deviceToken, "appId": appId, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
         
@@ -257,21 +207,21 @@ public class SpaceDog {
                 method: Method.PUT,
                 url: "\(self.installationUrl)/\(savedPushNotificationsId)",
                 body: parameters,
-                successHandler: {(r: SDResponse) in successHandler()},
-                failureHandler: failureHandler)
+                success: {(r: SDResponse) in success()},
+                error: error)
             
         } else {
             self.request(
                 method: Method.POST,
                 url: self.installationUrl,
                 body: parameters,
-                successHandler: {(result: SDResponse) in
+                success: {(result: SDResponse) in
                     if let pushNotificationsId = result.id {
                         self.savePushNotificationsId(pushNotificationsId)
                     }
-                    successHandler()
+                    success()
                 },
-                failureHandler: failureHandler)
+                error: error)
         }
     }
     
@@ -286,56 +236,59 @@ public class SpaceDog {
         return ud.valueForKey("spacedog_push_notifications_id") as? String
     }
     
-    public func sendPushNotification(appId: String, message: [String: AnyObject], sandbox: Bool, successHandler: (Void) -> Void, failureHandler: (SDException) -> Void) {
+    public func sendPushNotification(appId: String, message: [String: AnyObject], sandbox: Bool, success: (Void) -> Void, error: (SDException) -> Void) {
         
         let parameters: [String: AnyObject] = ["appId": appId, "message": message, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
         
         self.request(
             method: Method.POST,
             url: self.pushUrl,
+            auth: self.bearer(),
             body: parameters,
-            successHandler: {(result: SDResponse) in successHandler()},
-            failureHandler: failureHandler)
+            success: {(result: SDResponse) in success()},
+            error: error)
     }
     
-    private func handleResponse<T: Mappable>(response: Response<AnyObject, NSError>, successHandler: (T) -> Void, failureHandler: (SDException) -> Void) {
+    private func handleResponse<T: Mappable>(response: Response<AnyObject, NSError>, success: (T) -> Void, error: (SDException) -> Void) {
+        self.debug(response)
         if let httpresponse = response.response {
             switch httpresponse.statusCode {
             case (200 ..< 300) :
                 let object = Mapper<T>().map(response.result.value)!
-                
-                if let responseData = String(data: response.data!, encoding: NSUTF8StringEncoding) {
-                    print("---- WS SUCCESS ----")
-                    print("RESPONSE: \(responseData)")
-                    print("REQUEST HEADER: \(response.request?.HTTPMethod) \(response.request?.URLString)")
-                    
-                    if let requestBodyData = response.request?.HTTPBody {
-                        do {
-                            let requestJSONBody = try NSJSONSerialization.JSONObjectWithData(requestBodyData, options: .AllowFragments)
-                            
-                            print("REQUEST BODY: \(response.request?.HTTPMethod) \(response.request?.URLString) with data: \(requestJSONBody)")
-                        } catch {}
-                    }
-                    print("---- END -----")
-                }
-                successHandler(object)
+                success(object)
             case 400 :
-                failureHandler(SDException.BadRequest)
+                error(SDException.BadRequest)
             case 401 :
-                failureHandler(SDException.Unauthorized)
+                error(SDException.Unauthorized)
             case 403 :
-                failureHandler(SDException.Forbidden)
+                error(SDException.Forbidden)
             case 404 :
-                failureHandler(SDException.NotFound)
+                error(SDException.NotFound)
             case 500 :
-                failureHandler(SDException.ServerFailed)
+                error(SDException.ServerFailed)
             default:
-                failureHandler(SDException.UnhandledHttpError(code: httpresponse.statusCode))
+                error(SDException.UnhandledHttpError(code: httpresponse.statusCode))
             }
-        } else if let error = response.result.error {
-            failureHandler(SDException.Unreachable(reason: error.localizedDescription))
+        } else if let exception = response.result.error {
+            error(SDException.Unreachable(reason: exception.localizedDescription))
         } else {
-            failureHandler(SDException.Unreachable(reason: "Unknown response state"))
+            error(SDException.Unreachable(reason: "Unknown response state"))
+        }
+    }
+    
+    private func debug(response: Response<AnyObject, NSError>) {
+        if let method = response.request?.HTTPMethod, url = response.request?.URLString {
+            if let httpResponse = response.response {
+                print("\(method) \(url) \(httpResponse.statusCode)")
+            } else {
+                print("\(method) \(url) FAILED")
+            }
+            if let data = response.request?.HTTPBody, requestData = String(data: data, encoding: NSUTF8StringEncoding) {
+                print("REQUEST:\n\(requestData)")
+            }
+            if let data = response.data, responseData = String(data: data, encoding: NSUTF8StringEncoding) {
+                print("RESPONSE:\n\(responseData)")
+            }
         }
     }
     
