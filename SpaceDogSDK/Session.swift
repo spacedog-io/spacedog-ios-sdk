@@ -13,13 +13,15 @@ public class SDSession: Mappable {
     
     var accessToken: String?
     var expiresIn: Int?
-    
+    var credentialsId: String?
     
     required public init?(_ map: Map) {
     }
     
     public func mapping(map: Map) {
-        accessToken   <- map["accessToken"]
-        expiresIn     <- map["expiresIn"]
+        accessToken     <- map["accessToken"]
+        expiresIn       <- map["expiresIn"]
+        credentialsId   <- map["credentials.id"]
+
     }
 }
