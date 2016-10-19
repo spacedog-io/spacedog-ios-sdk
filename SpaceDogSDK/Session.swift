@@ -14,6 +14,7 @@ public class SDSession: Mappable {
     var accessToken: String?
     var expiresIn: Int?
     var credentialsId: String?
+    var credentialsEmail: String?
     
     required public init?(_ map: Map) {
     }
@@ -22,6 +23,6 @@ public class SDSession: Mappable {
         accessToken     <- map["accessToken"]
         expiresIn       <- map["expiresIn"]
         credentialsId   <- map["credentials.id"]
-
+        credentialsEmail   <- map["credentials.email"]
     }
 }

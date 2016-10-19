@@ -12,17 +12,19 @@ import Foundation
 public class SDCredentials : CustomStringConvertible {
     let userId: String
     let userToken: String
+    let userEmail: String
     let expiresIn: Int
     let acquired: NSDate
     
-    public init(userId: String, userToken: String, expiresIn: Int, acquired: NSDate) {
+    public init(userId: String, userToken: String, userEmail: String, expiresIn: Int, acquired: NSDate) {
         self.userId = userId
         self.userToken = userToken
+        self.userEmail = userEmail
         self.expiresIn = expiresIn
         self.acquired = acquired
     }
     
     public var description: String {
-        return "{userId: \(userId), userToken: \(userToken), expiresIn: \(expiresIn), acquired: \(acquired) }"
+        return "{userId: \(userId), userToken: \(userToken), userEmail: \(userEmail), expiresIn: \(expiresIn), acquired: \(acquired) }"
     }
 }

@@ -58,8 +58,10 @@ public class SpaceDog {
         
         request(method: Method.POST, url: self.loginUrl, auth: "Basic \(base64Credentials)",
             success: { (session: SDSession) in
-                if let token = session.accessToken, expiresIn = session.expiresIn, credentialsId = session.credentialsId {
-                    let credentials = SDCredentials(userId: credentialsId, userToken: token, expiresIn: expiresIn, acquired: NSDate())
+                if let token = session.accessToken, expiresIn = session.expiresIn,
+                    credentialsId = session.credentialsId, credentialsEmail = session.credentialsEmail {
+                    let credentials = SDCredentials(userId: credentialsId, userToken: token,
+                        userEmail: credentialsEmail, expiresIn: expiresIn, acquired: NSDate())
                     self.context.setLogged(with: credentials)
                     print("Successfully logged in to SpaceDog: \(session.accessToken)")
                     success(credentials)
