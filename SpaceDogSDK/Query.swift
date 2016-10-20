@@ -57,6 +57,11 @@ public class Query {
         return self
     }
     
+    public func must(must: [String: [String: String]]...) -> Query {
+        self.map["query"] = ["bool" : ["must" : must]]
+        return self
+    }
+    
     public func build() -> [String: AnyObject] {
         return self.map
     }
