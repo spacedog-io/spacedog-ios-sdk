@@ -32,8 +32,8 @@ public class Query {
         return self
     }
     
-    public func sort(path path: String, order: Order? = Order.Asc) -> Query {
-        self.map["sort"] = [[path: ["order": order?.rawValue]]]
+    public func sort(path path: String, order: Order = Order.Asc) -> Query {
+        self.map["sort"] = [[path: ["order": order.rawValue]]]
         return self
     }
     
