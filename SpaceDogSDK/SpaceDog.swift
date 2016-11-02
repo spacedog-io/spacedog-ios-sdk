@@ -30,6 +30,7 @@ public class SpaceDog {
     let baseUrl: String
     let loginUrl: String
     let logoutUrl: String
+    let credentialsUrl: String
     let dataUrl: String
     let searchUrl: String
     let installationUrl: String
@@ -42,6 +43,7 @@ public class SpaceDog {
         self.baseUrl = "https://\(self.context.instanceId).spacedog.io"
         self.loginUrl = "\(self.baseUrl)/1/login"
         self.logoutUrl = "\(self.baseUrl)/1/logout"
+        self.credentialsUrl = "\(self.baseUrl)/1/credentials"
         self.dataUrl = "\(self.baseUrl)/1/data"
         self.searchUrl = "\(self.baseUrl)/1/search"
         self.installationUrl = "\(self.baseUrl)/1/installation"
@@ -87,6 +89,27 @@ public class SpaceDog {
                 self.context.setLoggedOut()
                 print("Error when trying to logout of SpaceDog: \(exception)")
                 error?(exception)
+            }
+        )
+    }
+    
+    public func createCredentials(email: String, username: String, password: String, success: ((String) -> Void), error: ((SDException) -> Void)) {
+        
+        let parameters: [String:String] = ["email": email, "username": username, "password": password]
+        
+        request(method: Method.POST, url: self.credentialsUrl, body: parameters,
+                success: { ( result: SDResponse) in
+                    if let credentialsId = result.id {
+                        print("Successfully created credentials in Spacedog: \(credentialsId)")
+                        success(credentialsId)
+                    }
+                    else {
+                        error(SDException.Forbidden)
+                    }
+            },
+                error: { (exception) in
+                    print("Error while creating crendentials to SpaceDog: \(exception)")
+                    error(exception)
             }
         )
     }
