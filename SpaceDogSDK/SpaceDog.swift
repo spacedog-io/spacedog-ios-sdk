@@ -54,9 +54,14 @@ public class SpaceDog {
         self.init(from: SDContext(instanceId: instanceId))
     }
     
-    public func login(username username: String, password: String, success: ((SDCredentials) -> Void), error: ((SDException) -> Void)) {
+    private func convertToBase64(username: String, password: String) -> String {
         let credentialData = "\(username):\(password)".dataUsingEncoding(NSUTF8StringEncoding)!
         let base64Credentials = credentialData.base64EncodedStringWithOptions([])
+        return base64Credentials
+    }
+    
+    public func login(username username: String, password: String, success: ((SDCredentials) -> Void), error: ((SDException) -> Void)) {
+        let base64Credentials = self.convertToBase64(username, password: password)
         
         request(method: Method.POST, url: self.loginUrl, auth: "Basic \(base64Credentials)",
             success: { (session: SDSession) in
@@ -104,11 +109,34 @@ public class SpaceDog {
                         success(credentialsId)
                     }
                     else {
-                        error(SDException.Forbidden)
+                        error(SDException.Unauthorized)
                     }
             },
                 error: { (exception) in
                     print("Error while creating crendentials to SpaceDog: \(exception)")
+                    error(exception)
+            }
+        )
+    }
+    
+    public func updateCredentials(credentialsId: String, username: String, password: String, parameters: [String:String],
+                                  success: ((Void) -> Void), error: ((SDException) -> Void)) {
+        
+        let base64Credentials = self.convertToBase64(username, password: password)
+
+        request(method: Method.PUT, url: self.credentialsUrl+"/"+credentialsId, auth: "Basic \(base64Credentials)",
+                body: parameters,
+                success: { ( result: SDResponse) in
+                    if result.success == true {
+                        print("Successfully updated credentials in Spacedog")
+                        success()
+                    }
+                    else {
+                        error(SDException.Unauthorized)
+                    }
+            },
+                error: { (exception) in
+                    print("Error while updating crendentials to SpaceDog: \(exception)")
                     error(exception)
             }
         )
