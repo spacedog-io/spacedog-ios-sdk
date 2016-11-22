@@ -35,6 +35,7 @@ public class SpaceDog {
     let searchUrl: String
     let installationUrl: String
     let pushUrl: String
+    let stripeUrl: String
     
     let context: SDContext
     
@@ -48,6 +49,7 @@ public class SpaceDog {
         self.searchUrl = "\(self.baseUrl)/1/search"
         self.installationUrl = "\(self.baseUrl)/1/installation"
         self.pushUrl = "\(self.installationUrl)/push"
+        self.stripeUrl = "\(self.baseUrl)/1/stripe/customers"
     }
     
     public convenience init(instanceId: String) {
@@ -60,6 +62,7 @@ public class SpaceDog {
         return base64Credentials
     }
     
+    //MARK: Log in / Log out
     public func login(username username: String, password: String, success: ((SDCredentials) -> Void), error: ((SDException) -> Void)) {
         let base64Credentials = self.convertToBase64(username, password: password)
         
@@ -98,6 +101,7 @@ public class SpaceDog {
         )
     }
     
+    //MARK: Credentials
     public func createCredentials(email: String, username: String, password: String, success: ((String) -> Void), error: ((SDException) -> Void)) {
         
         let parameters: [String:String] = ["email": email, "username": username, "password": password]
@@ -141,6 +145,33 @@ public class SpaceDog {
             }
         )
     }
+    
+    
+    //MARK: Stripe
+
+    public func getMyStripeCustomer(success success: ((StripeCustomer) -> Void), error: ((SDException) -> Void)) {
+        request(method: Method.GET, url: "\(self.stripeUrl)/me", auth: self.bearer(),
+                success: success, error: error)
+    }
+
+    public func createStripeCustomer(cardToken token: String, success: ((StripeCustomer) -> Void), error: ((SDException) -> Void)) {
+        request(method: Method.POST, url: self.stripeUrl, auth: self.bearer(),
+                body: ["source": token],
+                success: success, error: error)
+    }
+
+    public func createCard(cardToken token: String, success: ((StripeCustomer) -> Void), error: ((SDException) -> Void)) {
+        request(method: Method.POST, url:  "\(self.stripeUrl)/me/sources", auth: self.bearer(),
+                body: ["source": token],
+                success: success, error: error)
+    }
+    
+    public func deleteCard(cardId id: String, success: ((StripeCustomer) -> Void), error: ((SDException) -> Void)) {
+        request(method: Method.DELETE, url: "\(self.stripeUrl)/me/sources/\(id)", auth: self.bearer(),
+                success: success, error: error)
+    }
+    
+    //MARK: SpaceDog Entities
     
     public func get<T: Mappable>(entity entity: String, entityId: String, success: (T) -> Void, error: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)/\(entityId)"
