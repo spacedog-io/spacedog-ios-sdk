@@ -12,6 +12,8 @@ import Foundation
 import Alamofire
 import ObjectMapper
 import AlamofireObjectMapper
+import PromiseKit
+import Stripe
 
 //TODO: handle headers.
 
@@ -149,26 +151,53 @@ public class SpaceDog {
     
     //MARK: Stripe
 
-    public func getMyStripeCustomer(success success: ((StripeCustomer) -> Void), error: ((SDException) -> Void)) {
-        request(method: Method.GET, url: "\(self.stripeUrl)/me", auth: self.bearer(),
-                success: success, error: error)
+    public func getMyStripeCustomer() -> Promise<StripeCustomer> {
+        return Promise { fufill, reject in
+            request(method: Method.GET, url: "\(self.stripeUrl)/me", auth: self.bearer(),
+                success: { (stripeCustomer: StripeCustomer) in
+                    fufill(stripeCustomer)
+            }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
     }
 
-    public func createStripeCustomer(cardToken token: String, success: ((StripeCustomer) -> Void), error: ((SDException) -> Void)) {
-        request(method: Method.POST, url: self.stripeUrl, auth: self.bearer(),
-                body: ["source": token],
-                success: success, error: error)
+    public func createStripeCustomer(cardToken token: STPToken) -> Promise<StripeCustomer> {
+        return Promise { fufill, reject in
+            request(method: Method.POST, url: self.stripeUrl, auth: self.bearer(),
+                    body: ["source": token.tokenId],
+                    success: {(stripeCustomer: StripeCustomer) in
+                    fufill(stripeCustomer)
+            }, error: { (error) in
+                reject(error)
+            })
+        }
     }
 
-    public func createCard(cardToken token: String, success: ((StripeCustomer) -> Void), error: ((SDException) -> Void)) {
-        request(method: Method.POST, url:  "\(self.stripeUrl)/me/sources", auth: self.bearer(),
-                body: ["source": token],
-                success: success, error: error)
+    public func createCard(cardToken token: STPToken) -> Promise<Card> {
+        return Promise { fufill, reject in
+            request(method: Method.POST, url: "\(self.stripeUrl)/me/sources", auth: self.bearer(),
+                body: ["source": token.tokenId],
+                success: { (card: Card) in
+                    fufill(card)
+                }, error: { (error) in
+                    reject(error)
+            })
+        }
     }
+
     
-    public func deleteCard(cardId id: String, success: ((StripeCustomer) -> Void), error: ((SDException) -> Void)) {
-        request(method: Method.DELETE, url: "\(self.stripeUrl)/me/sources/\(id)", auth: self.bearer(),
-                success: success, error: error)
+    public func deleteCard(cardId id: String) -> Promise<String> {
+        return Promise { fufill, reject in
+            
+            request(method: Method.DELETE, url: "\(self.stripeUrl)/me/sources/\(id)", auth: self.bearer(),
+                success: { (card: Card) in
+                    fufill(card.id ?? "")
+                }, error:{ (error) in
+                    reject(error)
+            })
+            
+        }
     }
     
     //MARK: SpaceDog Entities
