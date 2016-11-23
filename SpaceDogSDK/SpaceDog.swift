@@ -189,14 +189,12 @@ public class SpaceDog {
     
     public func deleteCard(cardId id: String) -> Promise<String> {
         return Promise { fufill, reject in
-            
             request(method: Method.DELETE, url: "\(self.stripeUrl)/me/sources/\(id)", auth: self.bearer(),
                 success: { (card: Card) in
                     fufill(card.id ?? "")
                 }, error:{ (error) in
                     reject(error)
             })
-            
         }
     }
     

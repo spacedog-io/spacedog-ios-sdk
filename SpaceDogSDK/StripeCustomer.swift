@@ -27,4 +27,9 @@ public class StripeCustomer: Mappable {
         defaultSource <- map["default_source"]
         cards   <- map["sources.data"]
     }
+    
+    public func getDefaultCard() -> Card? {
+        let defautSourceId = self.defaultSource ?? ""
+        return self.cards?.filter({ $0.id == defautSourceId }).first
+    }
 }
