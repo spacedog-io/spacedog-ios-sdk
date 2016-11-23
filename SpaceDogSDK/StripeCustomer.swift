@@ -22,10 +22,10 @@ public class StripeCustomer: Mappable {
     }
     
     public func mapping(map: Map) {
-        id      <- map["id"]
-        email   <- map["email"]
-        defaultSource <- map["default_source"]
-        cards   <- map["sources.data"]
+        id              <- map["id"]
+        email           <- map["email"]
+        defaultSource   <- map["default_source"]
+        cards           <- map["sources.data"]
     }
     
     public func getDefaultCard() -> Card? {
