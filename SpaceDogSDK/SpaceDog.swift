@@ -387,6 +387,8 @@ public class SpaceDog {
             var parameters: [String:AnyObject] = ["appId": self.context.appId]
             if let token = deviceId {
                 parameters["token"] = token
+                self.context.deviceId = token
+                self.saveContext()
             }
             #if DEBUG
                 parameters["pushService"] = "APNS_SANDBOX"
@@ -425,6 +427,7 @@ public class SpaceDog {
                     success: {(result: SDResponse) in
                         if let iid = result.id {
                             self.context.installationId = iid
+                            self.saveContext()
                             success()
                         } else {
                             error(SDException.DeviceNotReadyForInstallation)
