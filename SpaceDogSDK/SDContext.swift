@@ -9,11 +9,25 @@
 import Foundation
 
 public class SDContext : CustomStringConvertible {
+    
+    static let InstanceId = "InstanceId"
+    static let AccessToken = "AccessToken"
+    static let CredentialsId = "CredentialsId"
+    static let CredentialsEmail = "CredentialsEmail"
+    static let ExpiresIn = "ExpiresIn"
+    static let IssuedOn = "IssuedOn"
+    static let DeviceId = "DeviceId"
+    static let InstallationId = "InstallationId"
+    
     let instanceId: String
+    let appId: String
+    var deviceId: String?
+    var installationId: String?
     var credentials: SDCredentials?
     
-    public init(instanceId: String) {
+    public init(instanceId: String, appId: String) {
         self.instanceId = instanceId
+        self.appId = appId
     }
     
     public func setLogged(with credentials: SDCredentials) -> Void {
@@ -29,10 +43,6 @@ public class SDContext : CustomStringConvertible {
     }
     
     public var description: String {
-        if let credentials = self.credentials {
-            return "{instanceId: \(instanceId), credentials: \(credentials)}"
-        } else {
-            return "{instanceId: \(instanceId), credentials: nil}"
-        }
+        return "{instanceId: \(instanceId), credentials: \(credentials?.description ?? "nil"), installationId: \(installationId ?? "nil"), deviceId: \(deviceId ?? "nil")}"
     }
 }

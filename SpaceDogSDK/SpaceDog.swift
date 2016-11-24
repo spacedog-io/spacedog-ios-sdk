@@ -25,6 +25,7 @@ public enum SDException: ErrorType {
     case ServerFailed
     case UnhandledHttpError(code: Int)
     case BadRequest
+    case DeviceNotReadyForInstallation
 }
 
 public class SpaceDog {
@@ -41,9 +42,9 @@ public class SpaceDog {
     
     let context: SDContext
     
-    public init(from: SDContext) {
-        self.context = from
-        self.baseUrl = "https://\(self.context.instanceId).spacedog.io"
+    
+    public init(instanceId: String, appId: String) {
+        self.baseUrl = "https://\(instanceId).spacedog.io"
         self.loginUrl = "\(self.baseUrl)/1/login"
         self.logoutUrl = "\(self.baseUrl)/1/logout"
         self.credentialsUrl = "\(self.baseUrl)/1/credentials"
@@ -52,10 +53,61 @@ public class SpaceDog {
         self.installationUrl = "\(self.baseUrl)/1/installation"
         self.pushUrl = "\(self.installationUrl)/push"
         self.stripeUrl = "\(self.baseUrl)/1/stripe/customers"
+        
+        self.context = SDContext(instanceId: instanceId, appId: appId)
+        
+        let ud = NSUserDefaults.standardUserDefaults()
+        if let savedInstanceId = ud.stringForKey(SDContext.InstanceId) {
+            if savedInstanceId == instanceId {
+                let expiresIn = ud.integerForKey(SDContext.ExpiresIn);
+                let issuedOn = ud.doubleForKey(SDContext.IssuedOn);
+                if expiresIn > 0 && issuedOn > 0,
+                    let accessToken = ud.stringForKey(SDContext.AccessToken),
+                    let credentialsId = ud.stringForKey(SDContext.CredentialsId),
+                    let credentialsEmail = ud.stringForKey(SDContext.CredentialsEmail) {
+                    
+                    let date = NSDate(timeIntervalSinceReferenceDate: issuedOn)
+                    let credentials = SDCredentials(userId: credentialsId, userToken: accessToken, userEmail: credentialsEmail, expiresIn: expiresIn, acquired: date)
+                    context.setLogged(with: credentials)
+                }
+                if let deviceId = ud.stringForKey(SDContext.DeviceId) {
+                    context.deviceId = deviceId
+                }
+                if let installationId = ud.stringForKey(SDContext.InstallationId) {
+                    context.installationId = installationId
+                }
+            }
+        }
+        self.saveContext()
+        print("[SpaceDog] initialized with context \(self.context)")
     }
     
-    public convenience init(instanceId: String) {
-        self.init(from: SDContext(instanceId: instanceId))
+    private func saveContext() {
+        let ud = NSUserDefaults.standardUserDefaults()
+        ud.setObject(self.context.instanceId, forKey: SDContext.InstanceId)
+        if let credentials = self.context.credentials {
+            ud.setObject(credentials.userToken, forKey: SDContext.AccessToken)
+            ud.setObject(credentials.userId, forKey: SDContext.CredentialsId)
+            ud.setObject(credentials.userEmail, forKey: SDContext.CredentialsEmail)
+            ud.setObject(credentials.expiresIn, forKey: SDContext.ExpiresIn)
+            ud.setObject(credentials.acquired.timeIntervalSinceReferenceDate, forKey: SDContext.IssuedOn)
+        } else {
+            ud.removeObjectForKey(SDContext.AccessToken)
+            ud.removeObjectForKey(SDContext.CredentialsId)
+            ud.removeObjectForKey(SDContext.CredentialsEmail)
+            ud.removeObjectForKey(SDContext.ExpiresIn)
+            ud.removeObjectForKey(SDContext.IssuedOn)
+        }
+        if let installationId = self.context.installationId {
+            ud.setObject(installationId, forKey: SDContext.InstallationId)
+        } else {
+            ud.removeObjectForKey(SDContext.InstallationId)
+        }
+        if let deviceId = self.context.deviceId {
+            ud.setObject(deviceId, forKey: SDContext.DeviceId)
+        } else {
+            ud.removeObjectForKey(SDContext.DeviceId)
+        }
     }
     
     private func convertToBase64(username: String, password: String) -> String {
@@ -68,15 +120,25 @@ public class SpaceDog {
     public func login(username username: String, password: String, success: ((SDCredentials) -> Void), error: ((SDException) -> Void)) {
         let base64Credentials = self.convertToBase64(username, password: password)
         
-        request(method: Method.POST, url: self.loginUrl, auth: "Basic \(base64Credentials)",
+        request(
+            method: Method.POST,
+            url: self.loginUrl,
+            auth: "Basic \(base64Credentials)",
             success: { (session: SDSession) in
                 if let token = session.accessToken, expiresIn = session.expiresIn,
                     credentialsId = session.credentialsId, credentialsEmail = session.credentialsEmail {
                     let credentials = SDCredentials(userId: credentialsId, userToken: token,
                         userEmail: credentialsEmail, expiresIn: expiresIn, acquired: NSDate())
                     self.context.setLogged(with: credentials)
+                    self.saveContext()
                     print("Successfully logged in to SpaceDog: \(session.accessToken)")
-                    success(credentials)
+                    self.install(
+                        forDevice: self.context.deviceId,
+                        success: { () in
+                            success(credentials)
+                        },
+                        error: error
+                    )
                 } else {
                     error(SDException.Unauthorized)
                 }
@@ -89,14 +151,21 @@ public class SpaceDog {
     }
     
     public func logout(success success: ((Void) -> Void)? = nil, error: ((SDException) -> Void)? = nil) {
-        request(method: Method.GET, url: self.logoutUrl, auth: self.bearer(),
+        request(
+            method: Method.GET,
+            url: self.logoutUrl,
+            auth: self.bearer(),
             success: { (result: SDResponse) in
                 self.context.setLoggedOut()
+                self.install(forDevice: self.context.deviceId, success: {}, error: {_ in})
+                self.saveContext()
                 print("Successfully logged out of SpaceDog \(result.success)")
                 success?()
             },
             error: { (exception: SDException) in
                 self.context.setLoggedOut()
+                self.install(forDevice: self.context.deviceId, success: {}, error: {_ in})
+                self.saveContext()
                 print("Error when trying to logout of SpaceDog: \(exception)")
                 error?(exception)
             }
@@ -108,19 +177,21 @@ public class SpaceDog {
         
         let parameters: [String:String] = ["email": email, "username": username, "password": password]
         
-        request(method: Method.POST, url: self.credentialsUrl, body: parameters,
-                success: { ( result: SDResponse) in
-                    if let credentialsId = result.id {
-                        print("Successfully created credentials in Spacedog: \(credentialsId)")
-                        success(credentialsId)
-                    }
-                    else {
-                        error(SDException.Unauthorized)
-                    }
+        request(
+            method: Method.POST,
+            url: self.credentialsUrl,
+            body: parameters,
+            success: { ( result: SDResponse) in
+                if let credentialsId = result.id {
+                    print("Successfully created credentials in Spacedog: \(credentialsId)")
+                    success(credentialsId)
+                } else {
+                    error(SDException.Unauthorized)
+                }
             },
-                error: { (exception) in
-                    print("Error while creating crendentials to SpaceDog: \(exception)")
-                    error(exception)
+            error: { (exception) in
+                print("Error while creating crendentials to SpaceDog: \(exception)")
+                error(exception)
             }
         )
     }
@@ -309,53 +380,77 @@ public class SpaceDog {
         return encoding
     }
     
-    public func installPushNotifications(deviceToken: String, appId: String, sandbox: Bool, success: () -> Void, error: (SDException) -> Void) {
-        
-        let parameters = ["token": deviceToken, "appId": appId, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
-        
-        if let savedPushNotificationsId = retrievePushNotificationsId() {
-            self.request(
-                method: Method.PUT,
-                url: "\(self.installationUrl)/\(savedPushNotificationsId)",
-                body: parameters,
-                success: {(r: SDResponse) in success()},
-                error: error)
-            
+    public func install(forDevice deviceId: String?, success: () -> Void, error: (SDException) -> Void) {
+        if deviceId == nil && self.context.installationId == nil {
+            error(SDException.DeviceNotReadyForInstallation)
         } else {
-            self.request(
-                method: Method.POST,
-                url: self.installationUrl,
-                body: parameters,
-                success: {(result: SDResponse) in
-                    if let pushNotificationsId = result.id {
-                        self.savePushNotificationsId(pushNotificationsId)
+            var parameters: [String:AnyObject] = ["appId": self.context.appId]
+            if let token = deviceId {
+                parameters["token"] = token
+            }
+            #if DEBUG
+                parameters["pushService"] = "APNS_SANDBOX"
+            #else
+                parameters["pushService"] = "APNS"
+            #endif
+            
+            if let credential = self.context.credentials {
+                parameters["tags"] = [["key":"credentialsId", "value":credential.userId]]
+            } else {
+                parameters["tags"] = []
+            }
+            
+            if let installationId = self.context.installationId {
+                self.request(
+                    method: Method.PUT,
+                    url: "\(self.installationUrl)/\(installationId)",
+                    body: parameters,
+                    success: {(r: SDResponse) in success()},
+                    error: {sderror in
+                        switch (sderror) {
+                        case SDException.NotFound:
+                            self.context.installationId = nil
+                            self.saveContext()
+                            self.install(forDevice: deviceId, success: success, error: error)
+                        default:
+                            error(sderror)
+                        }
                     }
-                    success()
-                },
-                error: error)
+                )
+            } else {
+                self.request(
+                    method: Method.POST,
+                    url: self.installationUrl,
+                    body: parameters,
+                    success: {(result: SDResponse) in
+                        if let iid = result.id {
+                            self.context.installationId = iid
+                            success()
+                        } else {
+                            error(SDException.DeviceNotReadyForInstallation)
+                        }
+                    },
+                    error: error)
+            }
         }
     }
     
-    private func savePushNotificationsId(id: String) {
-        let ud = NSUserDefaults.standardUserDefaults()
-        ud.setValue(id, forKey: "spacedog_push_notifications_id")
-        ud.synchronize()
-    }
-    
-    private func retrievePushNotificationsId() -> String? {
-        let ud = NSUserDefaults.standardUserDefaults()
-        return ud.valueForKey("spacedog_push_notifications_id") as? String
-    }
-    
-    public func sendPushNotification(appId: String, message: [String: AnyObject], sandbox: Bool, success: (Void) -> Void, error: (SDException) -> Void) {
+    public func sendPushNotification(appId: String, message: [String: AnyObject], credentialsId: String, success: (Void) -> Void, error: (SDException) -> Void) {
         
-        let parameters: [String: AnyObject] = ["appId": appId, "message": message, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
+        let tags = [["key":"credentialsId", "value": credentialsId]]
+        #if DEBUG
+            let body: [String: AnyObject] = ["appId": appId, "message": ["APNS_SANDBOX": message], "pushService": "APNS_SANDBOX", "tags": tags]
+        #else
+            let body: [String: AnyObject] = ["appId": appId, "message": ["APNS": message], "pushService": "APNS", "tags": tags]
+        #endif
+        
+        //let parameters: [String: AnyObject] = ["appId": appId, "message": message, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
         
         self.request(
             method: Method.POST,
             url: self.pushUrl,
             auth: self.bearer(),
-            body: parameters,
+            body: body,
             success: {(result: SDResponse) in success()},
             error: error)
     }
