@@ -292,8 +292,10 @@ public class SpaceDog {
             error: error)
     }
     
-    public func update<T: Mappable>(entity entity: String, entityId: String, value: T, success: (Void) -> Void, error: (SDException) -> Void) {
-        let url = "\(self.dataUrl)/\(entity)/\(entityId)"
+    public func update<T: Mappable>(entity entity: String, entityId: String, value: T, strictVersioning version: Int? = nil, success: (Void) -> Void, error: (SDException) -> Void) {
+        var url = "\(self.dataUrl)/\(entity)/\(entityId)"
+        
+        if let version = version { url += "?version=\(version)"}
         self.request(
             method: Method.PUT,
             url: url,
@@ -303,8 +305,10 @@ public class SpaceDog {
             error: error)
     }
     
-    public func update(entity entity: String, entityId: String, partial: [String : AnyObject], success: (Void) -> Void, error: (SDException) -> Void) {
-        let url = "\(self.dataUrl)/\(entity)/\(entityId)"
+    public func update(entity entity: String, entityId: String, partial: [String : AnyObject], strictVersioning version: Int? = nil, success: (Void) -> Void, error: (SDException) -> Void) {
+        var url = "\(self.dataUrl)/\(entity)/\(entityId)"
+        
+        if let version = version { url += "?version=\(version)"}
         self.request(
             method: Method.PUT,
             url: url,
@@ -313,6 +317,8 @@ public class SpaceDog {
             success: {(r: SDResponse) in success()},
             error: error)
     }
+    
+    
     
     public func search<T: Mappable>(entity entity: String, query: [String: AnyObject], success: (SDSearch<T>) -> Void, error: (SDException) -> Void) {
         let url = "\(self.searchUrl)/\(entity)"
