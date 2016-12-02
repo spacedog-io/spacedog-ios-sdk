@@ -17,6 +17,7 @@ public class Card: Mappable {
     public var last4: String?
     public var expMonth: Int?
     public var expYear: Int?
+    public var label: String?
     
     public init() {}
 
@@ -27,6 +28,7 @@ public class Card: Mappable {
         id            <- map["id"]
         brand         <- map["brand"]
         name          <- map["name"]
+        label         <- map["metadata.description"]
         last4         <- map["last4"]
         expMonth      <- map["exp_month"]
         expYear       <- map["exp_year"]

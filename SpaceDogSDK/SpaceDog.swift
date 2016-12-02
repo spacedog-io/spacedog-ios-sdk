@@ -232,23 +232,23 @@ public class SpaceDog {
             })
         }
     }
-
-    public func createStripeCustomer(cardToken token: STPToken) -> Promise<StripeCustomer> {
+    
+    public func createStripeCustomer() -> Promise<StripeCustomer> {
         return Promise { fufill, reject in
             request(method: Method.POST, url: self.stripeUrl, auth: self.bearer(),
-                    body: ["source": token.tokenId],
-                    success: {(stripeCustomer: StripeCustomer) in
+                success: {(stripeCustomer: StripeCustomer) in
                     fufill(stripeCustomer)
-            }, error: { (error) in
-                reject(error)
+                }, error: { (error) in
+                    reject(error)
             })
         }
     }
 
-    public func createCard(cardToken token: STPToken) -> Promise<Card> {
+    
+    public func createCard(cardToken token: STPToken, cardLabel: String) -> Promise<Card> {
         return Promise { fufill, reject in
             request(method: Method.POST, url: "\(self.stripeUrl)/me/sources", auth: self.bearer(),
-                body: ["source": token.tokenId],
+                body: ["source": token.tokenId, "description": cardLabel],
                 success: { (card: Card) in
                     fufill(card)
                 }, error: { (error) in
