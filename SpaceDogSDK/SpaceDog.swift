@@ -387,7 +387,8 @@ public class SpaceDog {
     
     public func install(forDevice deviceId: String?, success: () -> Void, error: (SDException) -> Void) {
         if deviceId == nil && self.context.installationId == nil {
-            error(SDException.DeviceNotReadyForInstallation)
+            success()
+            //error(SDException.DeviceNotReadyForInstallation)
         } else {
             var parameters: [String:AnyObject] = ["appId": self.context.appId]
             if let token = deviceId {
