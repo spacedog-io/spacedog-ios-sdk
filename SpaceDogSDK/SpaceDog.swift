@@ -13,7 +13,6 @@ import Alamofire
 import ObjectMapper
 import AlamofireObjectMapper
 import PromiseKit
-import Stripe
 
 //TODO: handle headers.
 
@@ -245,10 +244,10 @@ public class SpaceDog {
     }
 
     
-    public func createCard(cardToken token: STPToken, cardLabel: String) -> Promise<Card> {
+    public func createCard(cardToken token: String, cardLabel: String) -> Promise<Card> {
         return Promise { fufill, reject in
             request(method: Method.POST, url: "\(self.stripeUrl)/me/sources", auth: self.bearer(),
-                body: ["source": token.tokenId, "description": cardLabel],
+                body: ["source": token, "description": cardLabel],
                 success: { (card: Card) in
                     fufill(card)
                 }, error: { (error) in
