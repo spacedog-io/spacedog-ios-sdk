@@ -24,6 +24,11 @@ public class Query {
         map["size"] = size
         return self
     }
+
+    public func source(source: Bool) -> Query {
+        self.map["_source"] = source
+        return self
+    }
     
     public func closestTo(path path: String, lat: Double, lng: Double) -> Query {
         self.map["sort"] = [
