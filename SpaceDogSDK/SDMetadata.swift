@@ -26,8 +26,8 @@ public class SDMetadata: Mappable {
     public func mapping(map: Map) {
         createdBy  <- map["createdBy"]
         updatedBy  <- map["updatedBy"]
-//        createdAt  <- (map["createdAt"], DateISO8601Transform())
-//        updatedAt  <- (map["updatedAt"], DateISO8601Transform())
+        createdAt  <- (map["createdAt"], DateISO8601Transform())
+        updatedAt  <- (map["updatedAt"], DateISO8601Transform())
         id         <- map["id"]
         type       <- map["type"]
         version    <- map["version"]
