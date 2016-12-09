@@ -38,6 +38,7 @@ public class SpaceDog {
     let installationUrl: String
     let pushUrl: String
     let stripeUrl: String
+    let settingsUrl: String
     
     let context: SDContext
     
@@ -52,6 +53,7 @@ public class SpaceDog {
         self.installationUrl = "\(self.baseUrl)/1/installation"
         self.pushUrl = "\(self.installationUrl)/push"
         self.stripeUrl = "\(self.baseUrl)/1/stripe/customers"
+        self.settingsUrl = "\(self.baseUrl)/1/settings"
         
         self.context = SDContext(instanceId: instanceId, appId: appId)
         
@@ -218,6 +220,18 @@ public class SpaceDog {
         )
     }
     
+    //MARK: Settings
+    
+    public func getSettings<T: Mappable>(settingsName: String) -> Promise<T> {
+        return Promise { fufill, reject in
+            request(method: Method.GET, url: "\(self.settingsUrl)/\(settingsName)", auth: self.bearer(),
+                success: { (settings: T) in
+                    fufill(settings)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
     
     //MARK: Stripe
 
