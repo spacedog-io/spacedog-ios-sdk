@@ -35,6 +35,7 @@ public class SpaceDog {
     let credentialsUrl: String
     let dataUrl: String
     let searchUrl: String
+    let batchUrl: String
     let installationUrl: String
     let pushUrl: String
     let stripeUrl: String
@@ -50,6 +51,7 @@ public class SpaceDog {
         self.credentialsUrl = "\(self.baseUrl)/1/credentials"
         self.dataUrl = "\(self.baseUrl)/1/data"
         self.searchUrl = "\(self.baseUrl)/1/search"
+        self.batchUrl = "\(self.baseUrl)/1/batch"
         self.installationUrl = "\(self.baseUrl)/1/installation"
         self.pushUrl = "\(self.installationUrl)/push"
         self.stripeUrl = "\(self.baseUrl)/1/stripe/customers"
@@ -332,7 +334,6 @@ public class SpaceDog {
     }
     
     
-    
     public func search<T: Mappable>(entity entity: String, query: [String: AnyObject], success: (SDSearch<T>) -> Void, error: (SDException) -> Void) {
         let url = "\(self.searchUrl)/\(entity)"
         self.request(
@@ -344,6 +345,16 @@ public class SpaceDog {
             error: error)
     }
     
+    public func batch(queries: [[String: AnyObject]], success: (SDBatch) -> Void, error: (SDException) -> Void) {
+        let url = self.batchUrl
+        self.request(
+            method: Method.POST,
+            url: url,
+            auth: self.bearer(),
+            body: queries,
+            success: success,
+            error: error)
+    }
     
     private func request<T: Mappable>(
         method method: Alamofire.Method,
@@ -363,26 +374,56 @@ public class SpaceDog {
         }
         
     }
-    
+
+    private func request<T: Mappable>(
+        method method: Alamofire.Method,
+               url: String,
+               auth: String? = nil,
+               body: [[String: AnyObject]],
+               success: (T) -> Void,
+               error: (SDException) -> Void) {
+        
+        var headers = [String:String]()
+        if let auth = auth {headers["Authorization"] = auth}
+        let encoding = ParameterEncoding.Custom(UTF8JSONEncoding(WithArray: true))
+        
+        Alamofire.request(method, url, parameters: ["array": body], encoding: encoding, headers: headers).responseJSON { response in
+            self.handleResponse(response, success: success, error: error)
+        }
+    }
+
     private func bearer() -> String? {
         if let credentials = self.context.credentials {return "Bearer \(credentials.userToken)"}
         else {return nil}
     }
     
+
+    //MARK: Encoding
     
     typealias CustomEncoding = (URLRequestConvertible, [String:AnyObject]?) -> (NSMutableURLRequest, NSError?)
     
-    private func UTF8JSONEncoding() -> CustomEncoding {
+    private func UTF8JSONEncoding(WithArray isArray: Bool = false) -> CustomEncoding {
         let encoding: CustomEncoding = { URLRequest, parameters in
             
             let mutableURLRequest = URLRequest.URLRequest
-            guard let parameters = parameters else { return (mutableURLRequest, nil) }
+            
+            var params: AnyObject
+
+            if let parameters = parameters?.first?.1 where isArray == true {
+                params = parameters
+            }
+            else if let parameters = parameters where isArray == false {
+                params = parameters
+            }
+            else {
+                return (mutableURLRequest, nil)
+            }
             
             var encodingError: NSError? = nil
             
             do {
                 let options = NSJSONWritingOptions()
-                let data = try NSJSONSerialization.dataWithJSONObject(parameters, options: options)
+                let data = try NSJSONSerialization.dataWithJSONObject(params, options: options)
                 
                 if mutableURLRequest.valueForHTTPHeaderField("Content-Type") == nil {
                     mutableURLRequest.setValue("application/json; charset=utf-8", forHTTPHeaderField: "Content-Type")
@@ -398,6 +439,7 @@ public class SpaceDog {
         
         return encoding
     }
+    
     
     public func install(forDevice deviceId: String?, success: () -> Void, error: (SDException) -> Void) {
         if deviceId == nil && self.context.installationId == nil {

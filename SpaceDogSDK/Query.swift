@@ -30,6 +30,21 @@ public class Query {
         return self
     }
     
+    public func method(method: String) -> Query {
+        self.map["method"] = method
+        return self
+    }
+    
+    public func path(path: String) -> Query {
+        self.map["path"] = path
+        return self
+    }
+    
+    public func content(content: [String: AnyObject]) -> Query {
+        self.map["content"] = content
+        return self
+    }
+    
     public func closestTo(path path: String, lat: Double, lng: Double) -> Query {
         self.map["sort"] = [
             ["_geo_distance" : ["order": "asc", "unit": "km", "distance_type": "plane", path : ["lat" : lat , "lon" : lng]]]
