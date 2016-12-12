@@ -16,8 +16,13 @@ import PromiseKit
 
 //TODO: handle headers.
 
+public enum UnauthorizedCode: String {
+    case invalidCredentials = "invalid-credentials"
+    case invalidToken = "invalid-token"
+}
+
 public enum SDException: ErrorType {
-    case Unauthorized
+    case Unauthorized(code: UnauthorizedCode)
     case Forbidden
     case Unreachable(reason: String)
     case NotFound
@@ -143,7 +148,7 @@ public class SpaceDog {
                         error: error
                     )
                 } else {
-                    error(SDException.Unauthorized)
+                    error(SDException.Unauthorized(code: UnauthorizedCode.invalidToken))
                 }
             },
             error: { (exception) in
@@ -189,7 +194,7 @@ public class SpaceDog {
                     print("Successfully created credentials in Spacedog: \(credentialsId)")
                     success(credentialsId)
                 } else {
-                    error(SDException.Unauthorized)
+                    error(SDException.Unauthorized(code: UnauthorizedCode(rawValue: result.error!.code!)!))
                 }
             },
             error: { (exception) in
@@ -212,7 +217,7 @@ public class SpaceDog {
                         success()
                     }
                     else {
-                        error(SDException.Unauthorized)
+                        error(SDException.Unauthorized(code: UnauthorizedCode(rawValue: result.error!.code!)!))
                     }
             },
                 error: { (exception) in
@@ -530,7 +535,8 @@ public class SpaceDog {
             case 400 :
                 error(SDException.BadRequest)
             case 401 :
-                error(SDException.Unauthorized)
+                let res = Mapper<SDResponse>().map(response.result.value)!
+                error(SDException.Unauthorized(code: UnauthorizedCode(rawValue: res.error!.code!)!))
             case 403 :
                 error(SDException.Forbidden)
             case 404 :
