@@ -13,7 +13,9 @@ public class SDError: Mappable {
     
     public var type: String?
     public var message: String?
-    
+    public var cause: String?
+    public var code: String?
+
     required public init?(_ map: Map) {
     }
     
@@ -28,5 +30,7 @@ public class SDError: Mappable {
     public func mapping(map: Map) {
         type        <- map["type"]
         message     <- map["message"]
+        cause       <- map["cause.message"]
+        code        <- map["code"]
     }
 }
