@@ -17,8 +17,11 @@ import PromiseKit
 //TODO: handle headers.
 
 public enum UnauthorizedCode: String {
-    case invalidCredentials = "invalid-credentials"
-    case invalidToken = "invalid-token"
+    case invalidCredentials = "invalid-credentials",
+    expiredAccessToken = "expired-access-token",
+    invalidAccessToken = "invalid-access-token",
+    disabledCredentials = "disabled-credentials",
+    invalidAuthorizationHeader = "invalid-authorization-header"
 }
 
 public enum SDException: ErrorType {
@@ -148,7 +151,7 @@ public class SpaceDog {
                         error: error
                     )
                 } else {
-                    error(SDException.Unauthorized(code: UnauthorizedCode.invalidToken))
+                    error(SDException.Unauthorized(code: UnauthorizedCode.invalidAccessToken))
                 }
             },
             error: { (exception) in
@@ -194,7 +197,8 @@ public class SpaceDog {
                     print("Successfully created credentials in Spacedog: \(credentialsId)")
                     success(credentialsId)
                 } else {
-                    error(SDException.Unauthorized(code: UnauthorizedCode(rawValue: result.error!.code!)!))
+                    let code = UnauthorizedCode(rawValue: result.error?.code ?? "") ?? UnauthorizedCode.expiredAccessToken
+                    error(SDException.Unauthorized(code: code))
                 }
             },
             error: { (exception) in
