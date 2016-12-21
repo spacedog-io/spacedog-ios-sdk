@@ -73,7 +73,12 @@ public class Query {
     }
     
     public func combinaison(must must: [String: [String: String]], mustNot: [String: [String: String]]) -> Query {
-        self.map["query"] = ["bool" : ["must" : [must], "must_not": [[mustNot]]]]
+        self.map["query"] = ["bool" : ["must" : [must], "must_not": [mustNot]]]
+        return self
+    }
+    
+    public func combinaison(must must: [[String: [String: String]]], mustNot: [[String: [String: String]]]) -> Query {
+        self.map["query"] = ["bool" : ["must" : must, "must_not": mustNot]]
         return self
     }
     
