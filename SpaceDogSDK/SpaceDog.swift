@@ -356,6 +356,20 @@ public class SpaceDog {
             error: error)
     }
     
+    //!\ migration
+    public func update(entity entity: String, entityId: String, partial: [String : AnyObject], strictVersioning version: Int? = nil, success: (SDResponse) -> Void, error: (SDException) -> Void) {
+        var url = "\(self.dataUrl)/\(entity)/\(entityId)"
+        
+        if let version = version { url += "?version=\(version)"}
+        self.request(
+            method: Method.PUT,
+            url: url,
+            auth: self.bearer(),
+            body: partial,
+            success: success,
+            error: error)
+    }
+    
     public func search<T: Mappable>(entity entity: String, query: [String: AnyObject], success: (SDSearch<T>) -> Void, error: (SDException) -> Void) {
         let url = "\(self.searchUrl)/\(entity)"
         self.request(
