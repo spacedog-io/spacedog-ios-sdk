@@ -316,6 +316,18 @@ public class SpaceDog {
             error: error)
     }
     
+    //!\ migration
+    public func create<T: Mappable>(entity entity: String, value: T, success: (SDResponse) -> Void, error: (SDException) -> Void) {
+        let url = "\(self.dataUrl)/\(entity)"
+        self.request(
+            method: Method.POST,
+            url: url,
+            auth: self.bearer(),
+            body: value.toJSON(),
+            success: success,
+            error: error)
+    }
+    
     public func update<T: Mappable>(entity entity: String, entityId: String, value: T, strictVersioning version: Int? = nil, success: (Void) -> Void, error: (SDException) -> Void) {
         var url = "\(self.dataUrl)/\(entity)/\(entityId)"
         
