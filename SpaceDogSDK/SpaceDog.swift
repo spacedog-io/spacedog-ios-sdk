@@ -305,18 +305,6 @@ public class SpaceDog {
             error: error)
     }
     
-    public func create<T: Mappable>(entity entity: String, value: T, success: (String) -> Void, error: (SDException) -> Void) {
-        let url = "\(self.dataUrl)/\(entity)"
-        self.request(
-            method: Method.POST,
-            url: url,
-            auth: self.bearer(),
-            body: value.toJSON(),
-            success: {(r: SDResponse) in success(r.id!)},
-            error: error)
-    }
-    
-    //!\ migration
     public func create<T: Mappable>(entity entity: String, value: T, success: (SDResponse) -> Void, error: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)"
         self.request(
@@ -328,33 +316,6 @@ public class SpaceDog {
             error: error)
     }
     
-    public func update<T: Mappable>(entity entity: String, entityId: String, value: T, strictVersioning version: Int? = nil, success: (Void) -> Void, error: (SDException) -> Void) {
-        var url = "\(self.dataUrl)/\(entity)/\(entityId)"
-        
-        if let version = version { url += "?version=\(version)"}
-        self.request(
-            method: Method.PUT,
-            url: url,
-            auth: self.bearer(),
-            body: value.toJSON(),
-            success: {(r: SDResponse) in success()},
-            error: error)
-    }
-    
-    public func update(entity entity: String, entityId: String, partial: [String : AnyObject], strictVersioning version: Int? = nil, success: (Void) -> Void, error: (SDException) -> Void) {
-        var url = "\(self.dataUrl)/\(entity)/\(entityId)"
-        
-        if let version = version { url += "?version=\(version)"}
-        self.request(
-            method: Method.PUT,
-            url: url,
-            auth: self.bearer(),
-            body: partial,
-            success: {(r: SDResponse) in success()},
-            error: error)
-    }
-    
-    //!\ migration
     public func update<T: Mappable>(entity entity: String, entityId: String, value: T, strictVersioning version: Int? = nil, success: (SDResponse) -> Void, error: (SDException) -> Void) {
         var url = "\(self.dataUrl)/\(entity)/\(entityId)"
         
@@ -368,7 +329,6 @@ public class SpaceDog {
             error: error)
     }
     
-    //!\ migration
     public func update(entity entity: String, entityId: String, partial: [String : AnyObject], strictVersioning version: Int? = nil, success: (SDResponse) -> Void, error: (SDException) -> Void) {
         var url = "\(self.dataUrl)/\(entity)/\(entityId)"
         
