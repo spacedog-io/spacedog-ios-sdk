@@ -480,6 +480,7 @@ public class SpaceDog {
         return encoding
     }
     
+    //MARK: Push notifications
     
     public func install(forDevice deviceId: String?, success: () -> Void, error: (SDException) -> Void) {
         if deviceId == nil && self.context.installationId == nil {
@@ -560,6 +561,43 @@ public class SpaceDog {
             error: error)
     }
     
+    
+    public func updateTags(parameters: [[String: AnyObject]]) -> Promise<SDResponse> {
+        return Promise { fufill, reject in
+            if let installationId = self.context.installationId {
+                self.request(
+                    method: Method.PUT,
+                    url: "\(self.installationUrl)/\(installationId)/tags",
+                    body: parameters,
+                    success: {(r: SDResponse) in
+                        fufill(r)
+                    },
+                    error: reject)
+            }
+            else {
+                reject(SDException.BadRequest)
+            }
+        }
+    }
+    
+    public func deleteTags(parameters: [[String: AnyObject]]) -> Promise<SDResponse> {
+        return Promise { fufill, reject in
+            if let installationId = self.context.installationId {
+                self.request(
+                    method: Method.DELETE,
+                    url: "\(self.installationUrl)/\(installationId)/tags",
+                    body: parameters,
+                    success: {(r: SDResponse) in
+                        fufill(r)
+                    },
+                    error: reject)
+            }
+            else {
+                reject(SDException.BadRequest)
+            }
+        }
+    }
+    
     private func handleResponse<T: Mappable>(response: Response<AnyObject, NSError>, success: (T) -> Void, error: (SDException) -> Void) {
         self.debug(response)
         if let httpresponse = response.response {
@@ -570,8 +608,14 @@ public class SpaceDog {
             case 400 :
                 error(SDException.BadRequest)
             case 401 :
-                let res = Mapper<SDResponse>().map(response.result.value)!
-                error(SDException.Unauthorized(code: UnauthorizedCode(rawValue: res.error!.code!)!))
+                if let res = Mapper<SDResponse>().map(response.result.value),
+                    let code = res.error?.code,
+                    let unauthorizedCode = UnauthorizedCode(rawValue: code) {
+                        error(SDException.Unauthorized(code: unauthorizedCode))
+                }
+                else {
+                    error(SDException.Unauthorized(code: UnauthorizedCode.invalidAccessToken))
+                }
             case 403 :
                 error(SDException.Forbidden)
             case 404 :
