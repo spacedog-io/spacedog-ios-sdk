@@ -48,6 +48,8 @@ public class SpaceDog {
     let pushUrl: String
     let stripeUrl: String
     let settingsUrl: String
+    let smsUrl: String
+    let mailUrl: String
     
     let context: SDContext
     
@@ -64,6 +66,9 @@ public class SpaceDog {
         self.pushUrl = "\(self.installationUrl)/push"
         self.stripeUrl = "\(self.baseUrl)/1/stripe/customers"
         self.settingsUrl = "\(self.baseUrl)/1/settings"
+        self.smsUrl = "\(self.baseUrl)/1/sms/template"
+        self.mailUrl = "\(self.baseUrl)/1/mail/template"
+
         
         self.context = SDContext(instanceId: instanceId, appId: appId)
         
@@ -238,6 +243,33 @@ public class SpaceDog {
             request(method: Method.GET, url: "\(self.settingsUrl)/\(settingsName)", auth: self.bearer(),
                 success: { (settings: T) in
                     fufill(settings)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
+    
+    
+    //MARK: SMS
+    
+    public func sendSMS(templateName: String, parameters: [String: AnyObject]) -> Promise<SDResponse> {
+        return Promise { fufill, reject in
+            request(method: Method.POST, url: "\(self.smsUrl)/\(templateName)", body: parameters, auth: self.bearer(),
+                success: { (response: SDResponse) in
+                    fufill(response)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
+    
+    //MARK: Mail
+
+    public func sendMail(templateName: String, parameters: [String: AnyObject]) -> Promise<SDResponse> {
+        return Promise { fufill, reject in
+            request(method: Method.POST, url: "\(self.mailUrl)/\(templateName)", body: parameters, auth: self.bearer(),
+                success: { (response: SDResponse) in
+                    fufill(response)
                 }, error: { (error: SDException) in
                     reject(error)
             })
