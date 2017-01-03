@@ -561,6 +561,25 @@ public class SpaceDog {
             error: error)
     }
     
+
+    public func createTag(key: String, value: String) -> Promise<SDResponse> {
+        return Promise { fufill, reject in
+            if let installationId = self.context.installationId {
+                self.request(
+                    method: Method.POST,
+                    url: "\(self.installationUrl)/\(installationId)/tags",
+                    body: ["key": key, "value": value],
+                    success: {(r: SDResponse) in
+                        fufill(r)
+                    },
+                    error: reject)
+            }
+            else {
+                reject(SDException.BadRequest)
+            }
+        }
+    }
+
     
     public func updateTags(parameters: [[String: AnyObject]]) -> Promise<SDResponse> {
         return Promise { fufill, reject in
@@ -580,13 +599,13 @@ public class SpaceDog {
         }
     }
     
-    public func deleteTags(parameters: [[String: AnyObject]]) -> Promise<SDResponse> {
+    public func deleteTag(key: String, value: String) -> Promise<SDResponse> {
         return Promise { fufill, reject in
             if let installationId = self.context.installationId {
                 self.request(
                     method: Method.DELETE,
                     url: "\(self.installationUrl)/\(installationId)/tags",
-                    body: parameters,
+                    body: ["key": key, "value": value],
                     success: {(r: SDResponse) in
                         fufill(r)
                     },
