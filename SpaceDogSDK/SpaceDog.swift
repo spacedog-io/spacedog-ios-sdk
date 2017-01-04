@@ -506,22 +506,38 @@ public class SpaceDog {
             }
             
             if let installationId = self.context.installationId {
-                self.request(
-                    method: Method.PUT,
-                    url: "\(self.installationUrl)/\(installationId)",
-                    body: parameters,
-                    success: {(r: SDResponse) in success()},
-                    error: {sderror in
-                        switch (sderror) {
-                        case SDException.NotFound:
-                            self.context.installationId = nil
-                            self.saveContext()
-                            self.install(forDevice: deviceId, success: success, error: error)
-                        default:
-                            error(sderror)
-                        }
+                
+                self.getInstallation(installationId).then({ (installation: SDInstallation) -> Void in
+                    
+                    if let itags = installation.tags {
+                        let extraTags = itags.flatMap({ (tag: SDTag) -> [String: AnyObject]? in
+                            return tag.key != "credentialsId" ? tag.toJSON() : nil
+                        })
+                        var tags = parameters["tags"] as! [[String: AnyObject]]
+                        tags += extraTags
+                        parameters["tags"] = tags
                     }
-                )
+                    
+                    self.request(
+                        method: Method.PUT,
+                        url: "\(self.installationUrl)/\(installationId)",
+                        body: parameters,
+                        success: {(r: SDResponse) in success()},
+                        error: {sderror in
+                            switch (sderror) {
+                            case SDException.NotFound:
+                                self.context.installationId = nil
+                                self.saveContext()
+                                self.install(forDevice: deviceId, success: success, error: error)
+                            default:
+                                error(sderror)
+                            }
+                        }
+                    )
+                }).error({ (sderror) in
+                    error(SDException.DeviceNotReadyForInstallation)
+                })
+        
             } else {
                 self.request(
                     method: Method.POST,
@@ -541,16 +557,13 @@ public class SpaceDog {
         }
     }
     
-    public func sendPushNotification(appId: String, message: [String: AnyObject], credentialsId: String, success: (Void) -> Void, error: (SDException) -> Void) {
+    public func sendPushNotification(appId: String, message: [String: AnyObject], tags: [[String:String]], success: (Void) -> Void, error: (SDException) -> Void) {
         
-        let tags = [["key":"credentialsId", "value": credentialsId]]
         #if DEBUG
             let body: [String: AnyObject] = ["appId": appId, "message": ["APNS_SANDBOX": message], "pushService": "APNS_SANDBOX", "tags": tags]
         #else
             let body: [String: AnyObject] = ["appId": appId, "message": ["APNS": message], "pushService": "APNS", "tags": tags]
         #endif
-        
-        //let parameters: [String: AnyObject] = ["appId": appId, "message": message, "pushService": sandbox == true ? "APNS_SANDBOX" : "APNS"]
         
         self.request(
             method: Method.POST,
@@ -562,60 +575,56 @@ public class SpaceDog {
     }
     
 
-    public func createTag(key: String, value: String) -> Promise<SDResponse> {
+    public func createTag(installationId: String, key: String, value: String) -> Promise<SDResponse> {
         return Promise { fufill, reject in
-            if let installationId = self.context.installationId {
-                self.request(
-                    method: Method.POST,
-                    url: "\(self.installationUrl)/\(installationId)/tags",
-                    body: ["key": key, "value": value],
-                    success: {(r: SDResponse) in
-                        fufill(r)
-                    },
-                    error: reject)
-            }
-            else {
-                reject(SDException.BadRequest)
-            }
+            self.request(
+                method: Method.POST,
+                url: "\(self.installationUrl)/\(installationId)/tags",
+                body: ["key": key, "value": value],
+                success: {(r: SDResponse) in
+                    fufill(r)
+                },
+                error: reject)
         }
     }
 
     
-    public func updateTags(parameters: [[String: AnyObject]]) -> Promise<SDResponse> {
+    public func updateTags(installationId: String, parameters: [[String: AnyObject]]) -> Promise<SDResponse> {
         return Promise { fufill, reject in
-            if let installationId = self.context.installationId {
-                self.request(
-                    method: Method.PUT,
-                    url: "\(self.installationUrl)/\(installationId)/tags",
-                    body: parameters,
-                    success: {(r: SDResponse) in
-                        fufill(r)
-                    },
-                    error: reject)
-            }
-            else {
-                reject(SDException.BadRequest)
-            }
+            self.request(
+                method: Method.PUT,
+                url: "\(self.installationUrl)/\(installationId)/tags",
+                body: parameters,
+                success: {(r: SDResponse) in
+                    fufill(r)
+                },
+                error: reject)
         }
     }
     
-    public func deleteTag(key: String, value: String) -> Promise<SDResponse> {
+    public func deleteTag(installationId: String, key: String, value: String) -> Promise<SDResponse> {
         return Promise { fufill, reject in
-            if let installationId = self.context.installationId {
-                self.request(
-                    method: Method.DELETE,
-                    url: "\(self.installationUrl)/\(installationId)/tags",
-                    body: ["key": key, "value": value],
-                    success: {(r: SDResponse) in
-                        fufill(r)
-                    },
-                    error: reject)
-            }
-            else {
-                reject(SDException.BadRequest)
-            }
+            self.request(
+                method: Method.DELETE,
+                url: "\(self.installationUrl)/\(installationId)/tags",
+                body: ["key": key, "value": value],
+                success: {(r: SDResponse) in
+                    fufill(r)
+                },
+                error: reject)
         }
     }
+    
+    
+    public func getInstallation(installationId: String) -> Promise<SDInstallation> {
+        return Promise { fufill, reject in
+            request(method: Method.GET, url: "\(self.installationUrl)/\(installationId)",
+                success: { (installation: SDInstallation) in
+                    fufill(installation)
+                }, error: reject)
+        }
+    }
+    
     
     private func handleResponse<T: Mappable>(response: Response<AnyObject, NSError>, success: (T) -> Void, error: (SDException) -> Void) {
         self.debug(response)
