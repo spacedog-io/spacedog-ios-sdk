@@ -535,7 +535,14 @@ public class SpaceDog {
                         }
                     )
                 }).error({ (sderror) in
-                    error(SDException.DeviceNotReadyForInstallation)
+                    switch (sderror) {
+                    case SDException.NotFound:
+                        self.context.installationId = nil
+                        self.saveContext()
+                        self.install(forDevice: deviceId, success: success, error: error)
+                    default:
+                        error(SDException.DeviceNotReadyForInstallation)
+                    }
                 })
         
             } else {
