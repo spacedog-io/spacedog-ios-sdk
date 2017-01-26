@@ -14,14 +14,17 @@ import ObjectMapper
 import AlamofireObjectMapper
 import PromiseKit
 
-//TODO: handle headers.
-
 public enum UnauthorizedCode: String {
     case invalidCredentials = "invalid-credentials",
     expiredAccessToken = "expired-access-token",
     invalidAccessToken = "invalid-access-token",
     disabledCredentials = "disabled-credentials",
     invalidAuthorizationHeader = "invalid-authorization-header"
+}
+
+public enum BadRequestCode: String {
+    case alreadyExists = "already-exists",
+    unhandledErrorCode
 }
 
 public enum SDException: ErrorType {
@@ -31,7 +34,7 @@ public enum SDException: ErrorType {
     case NotFound
     case ServerFailed
     case UnhandledHttpError(code: Int)
-    case BadRequest
+    case BadRequest(code: BadRequestCode)
     case DeviceNotReadyForInstallation
 }
 
@@ -641,7 +644,14 @@ public class SpaceDog {
                 let object = Mapper<T>().map(response.result.value)!
                 success(object)
             case 400 :
-                error(SDException.BadRequest)
+                if let res = Mapper<SDResponse>().map(response.result.value),
+                    let code = res.error?.code,
+                    let badRequestCode = BadRequestCode(rawValue: code) {
+                    error(SDException.BadRequest(code: badRequestCode))
+                }
+                else {
+                    error(SDException.BadRequest(code: BadRequestCode.unhandledErrorCode))
+                }
             case 401 :
                 if let res = Mapper<SDResponse>().map(response.result.value),
                     let code = res.error?.code,
