@@ -55,7 +55,7 @@ public class SpaceDog {
     let mailUrl: String
     
     let context: SDContext
-    
+    let manager: Alamofire.Manager
     
     public init(instanceId: String, appId: String) {
         self.baseUrl = "https://\(instanceId).spacedog.io"
@@ -72,6 +72,9 @@ public class SpaceDog {
         self.smsUrl = "\(self.baseUrl)/1/sms/template"
         self.mailUrl = "\(self.baseUrl)/1/mail/template"
 
+        let configuration = NSURLSessionConfiguration.defaultSessionConfiguration()
+        configuration.timeoutIntervalForResource = 60
+        self.manager = Alamofire.Manager(configuration: configuration)
         
         self.context = SDContext(instanceId: instanceId, appId: appId)
         
@@ -412,7 +415,7 @@ public class SpaceDog {
         var encoding = ParameterEncoding.URL
         if body != nil {encoding = ParameterEncoding.Custom(UTF8JSONEncoding())}
         
-        Alamofire.request(method, url, parameters: body, encoding: encoding, headers: headers).responseJSON { response in
+        manager.request(method, url, parameters: body, encoding: encoding, headers: headers).responseJSON { response in
             self.handleResponse(response, success: success, error: error)
         }
         
@@ -430,7 +433,7 @@ public class SpaceDog {
         if let auth = auth {headers["Authorization"] = auth}
         let encoding = ParameterEncoding.Custom(UTF8JSONEncoding(WithArray: true))
         
-        Alamofire.request(method, url, parameters: ["array": body], encoding: encoding, headers: headers).responseJSON { response in
+        manager.request(method, url, parameters: ["array": body], encoding: encoding, headers: headers).responseJSON { response in
             self.handleResponse(response, success: success, error: error)
         }
     }
