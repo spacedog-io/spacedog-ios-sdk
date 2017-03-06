@@ -9,20 +9,20 @@
 import Foundation
 import ObjectMapper
 
-public class DateISO8601Transform: TransformType {
-    public typealias Object = NSDate
+open class DateISO8601Transform: TransformType {
+    public typealias Object = Date
     public typealias JSON = String
     
     public init() {}
     
-    public func transformFromJSON(value: AnyObject?) -> NSDate? {
+    open func transformFromJSON(_ value: Any?) -> Date? {
         if let dateString = value as? String {
-            return dateString.dateFromISO8601
+            return dateString.dateFromISO8601 as Date?
         }
         return nil
     }
     
-    public func transformToJSON(value: NSDate?) -> String? {
+    open func transformToJSON(_ value: Date?) -> String? {
         if let date = value {
             return date.iso8601
         }

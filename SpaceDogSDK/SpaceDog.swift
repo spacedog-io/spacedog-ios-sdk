@@ -27,18 +27,18 @@ public enum BadRequestCode: String {
     unhandledErrorCode
 }
 
-public enum SDException: ErrorType {
-    case Unauthorized(code: UnauthorizedCode)
-    case Forbidden
-    case Unreachable(reason: String)
-    case NotFound
-    case ServerFailed
-    case UnhandledHttpError(code: Int)
-    case BadRequest(code: BadRequestCode)
-    case DeviceNotReadyForInstallation
+public enum SDException: Error {
+    case unauthorized(code: UnauthorizedCode)
+    case forbidden
+    case unreachable(reason: String)
+    case notFound
+    case serverFailed
+    case unhandledHttpError(code: Int)
+    case badRequest(code: BadRequestCode)
+    case deviceNotReadyForInstallation
 }
 
-public class SpaceDog {
+open class SpaceDog {
     
     let baseUrl: String
     let loginUrl: String
@@ -55,7 +55,7 @@ public class SpaceDog {
     let mailUrl: String
     
     let context: SDContext
-    let manager: Alamofire.Manager
+    let manager: Alamofire.SessionManager
     
     public init(instanceId: String, appId: String) {
         self.baseUrl = "https://\(instanceId).spacedog.io"
@@ -72,30 +72,30 @@ public class SpaceDog {
         self.smsUrl = "\(self.baseUrl)/1/sms/template"
         self.mailUrl = "\(self.baseUrl)/1/mail/template"
 
-        let configuration = NSURLSessionConfiguration.defaultSessionConfiguration()
+        let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForResource = 60
-        self.manager = Alamofire.Manager(configuration: configuration)
+        self.manager = Alamofire.SessionManager(configuration: configuration)
         
         self.context = SDContext(instanceId: instanceId, appId: appId)
         
-        let ud = NSUserDefaults.standardUserDefaults()
-        if let savedInstanceId = ud.stringForKey(SDContext.InstanceId) {
+        let ud = UserDefaults.standard
+        if let savedInstanceId = ud.string(forKey: SDContext.InstanceId) {
             if savedInstanceId == instanceId {
-                let expiresIn = ud.integerForKey(SDContext.ExpiresIn);
-                let issuedOn = ud.doubleForKey(SDContext.IssuedOn);
+                let expiresIn = ud.integer(forKey: SDContext.ExpiresIn);
+                let issuedOn = ud.double(forKey: SDContext.IssuedOn);
                 if expiresIn > 0 && issuedOn > 0,
-                    let accessToken = ud.stringForKey(SDContext.AccessToken),
-                    let credentialsId = ud.stringForKey(SDContext.CredentialsId),
-                    let credentialsEmail = ud.stringForKey(SDContext.CredentialsEmail) {
+                    let accessToken = ud.string(forKey: SDContext.AccessToken),
+                    let credentialsId = ud.string(forKey: SDContext.CredentialsId),
+                    let credentialsEmail = ud.string(forKey: SDContext.CredentialsEmail) {
                     
-                    let date = NSDate(timeIntervalSinceReferenceDate: issuedOn)
+                    let date = Date(timeIntervalSinceReferenceDate: issuedOn)
                     let credentials = SDCredentials(userId: credentialsId, userToken: accessToken, userEmail: credentialsEmail, expiresIn: expiresIn, acquired: date)
                     context.setLogged(with: credentials)
                 }
-                if let deviceId = ud.stringForKey(SDContext.DeviceId) {
+                if let deviceId = ud.string(forKey: SDContext.DeviceId) {
                     context.deviceId = deviceId
                 }
-                if let installationId = ud.stringForKey(SDContext.InstallationId) {
+                if let installationId = ud.string(forKey: SDContext.InstallationId) {
                     context.installationId = installationId
                 }
             }
@@ -104,51 +104,51 @@ public class SpaceDog {
         print("[SpaceDog] initialized with context \(self.context)")
     }
     
-    private func saveContext() {
-        let ud = NSUserDefaults.standardUserDefaults()
-        ud.setObject(self.context.instanceId, forKey: SDContext.InstanceId)
+    fileprivate func saveContext() {
+        let ud = UserDefaults.standard
+        ud.set(self.context.instanceId, forKey: SDContext.InstanceId)
         if let credentials = self.context.credentials {
-            ud.setObject(credentials.userToken, forKey: SDContext.AccessToken)
-            ud.setObject(credentials.userId, forKey: SDContext.CredentialsId)
-            ud.setObject(credentials.userEmail, forKey: SDContext.CredentialsEmail)
-            ud.setObject(credentials.expiresIn, forKey: SDContext.ExpiresIn)
-            ud.setObject(credentials.acquired.timeIntervalSinceReferenceDate, forKey: SDContext.IssuedOn)
+            ud.set(credentials.userToken, forKey: SDContext.AccessToken)
+            ud.set(credentials.userId, forKey: SDContext.CredentialsId)
+            ud.set(credentials.userEmail, forKey: SDContext.CredentialsEmail)
+            ud.set(credentials.expiresIn, forKey: SDContext.ExpiresIn)
+            ud.set(credentials.acquired.timeIntervalSinceReferenceDate, forKey: SDContext.IssuedOn)
         } else {
-            ud.removeObjectForKey(SDContext.AccessToken)
-            ud.removeObjectForKey(SDContext.CredentialsId)
-            ud.removeObjectForKey(SDContext.CredentialsEmail)
-            ud.removeObjectForKey(SDContext.ExpiresIn)
-            ud.removeObjectForKey(SDContext.IssuedOn)
+            ud.removeObject(forKey: SDContext.AccessToken)
+            ud.removeObject(forKey: SDContext.CredentialsId)
+            ud.removeObject(forKey: SDContext.CredentialsEmail)
+            ud.removeObject(forKey: SDContext.ExpiresIn)
+            ud.removeObject(forKey: SDContext.IssuedOn)
         }
         if let installationId = self.context.installationId {
-            ud.setObject(installationId, forKey: SDContext.InstallationId)
+            ud.set(installationId, forKey: SDContext.InstallationId)
         } else {
-            ud.removeObjectForKey(SDContext.InstallationId)
+            ud.removeObject(forKey: SDContext.InstallationId)
         }
         if let deviceId = self.context.deviceId {
-            ud.setObject(deviceId, forKey: SDContext.DeviceId)
+            ud.set(deviceId, forKey: SDContext.DeviceId)
         } else {
-            ud.removeObjectForKey(SDContext.DeviceId)
+            ud.removeObject(forKey: SDContext.DeviceId)
         }
     }
     
-    private func convertToBase64(username: String, password: String) -> String {
-        let credentialData = "\(username):\(password)".dataUsingEncoding(NSUTF8StringEncoding)!
-        let base64Credentials = credentialData.base64EncodedStringWithOptions([])
+    fileprivate func convertToBase64(_ username: String, password: String) -> String {
+        let credentialData = "\(username):\(password)".data(using: String.Encoding.utf8)!
+        let base64Credentials = credentialData.base64EncodedString(options: [])
         return base64Credentials
     }
     
     //MARK: Log in / Log out
-    public func login(username username: String, password: String, success: ((SDCredentials) -> Void), error: ((SDException) -> Void)) {
+    open func login(username: String, password: String, success: @escaping ((SDCredentials) -> Void), error: @escaping ((SDException) -> Void)) {
         let base64Credentials = self.convertToBase64(username, password: password)
         
         request(
-            method: Method.POST,
+            method: .post,
             url: self.loginUrl,
             auth: "Basic \(base64Credentials)",
             success: { (session: SDSession) in
-                if let token = session.accessToken, expiresIn = session.expiresIn,
-                    credentialsId = session.credentialsId, credentialsEmail = session.credentialsEmail {
+                if let token = session.accessToken, let expiresIn = session.expiresIn,
+                    let credentialsId = session.credentialsId, let credentialsEmail = session.credentialsEmail {
                     let credentials = SDCredentials(userId: credentialsId, userToken: token,
                         userEmail: credentialsEmail, expiresIn: expiresIn, acquired: NSDate())
                     self.context.setLogged(with: credentials)
@@ -172,9 +172,9 @@ public class SpaceDog {
         )
     }
     
-    public func logout(success success: ((Void) -> Void)? = nil, error: ((SDException) -> Void)? = nil) {
+    open func logout(success: ((Void) -> Void)? = nil, error: ((SDException) -> Void)? = nil) {
         request(
-            method: Method.GET,
+            method: .get,
             url: self.logoutUrl,
             auth: self.bearer(),
             success: { (result: SDResponse) in
@@ -195,12 +195,12 @@ public class SpaceDog {
     }
     
     //MARK: Credentials
-    public func createCredentials(email: String, username: String, password: String, success: ((String) -> Void), error: ((SDException) -> Void)) {
+    open func createCredentials(_ email: String, username: String, password: String, success: @escaping ((String) -> Void), error: @escaping ((SDException) -> Void)) {
         
         let parameters: [String:String] = ["email": email, "username": username, "password": password]
         
         request(
-            method: Method.POST,
+            method: .post,
             url: self.credentialsUrl,
             body: parameters,
             success: { ( result: SDResponse) in
@@ -219,12 +219,12 @@ public class SpaceDog {
         )
     }
     
-    public func updateCredentials(credentialsId: String, username: String, password: String, parameters: [String:String],
-                                  success: ((Void) -> Void), error: ((SDException) -> Void)) {
+    open func updateCredentials(_ credentialsId: String, username: String, password: String, parameters: [String:String],
+                                  success: @escaping ((Void) -> Void), error: @escaping ((SDException) -> Void)) {
         
         let base64Credentials = self.convertToBase64(username, password: password)
 
-        request(method: Method.PUT, url: self.credentialsUrl+"/"+credentialsId, auth: "Basic \(base64Credentials)",
+        request(method: .put, url: self.credentialsUrl+"/"+credentialsId, auth: "Basic \(base64Credentials)",
                 body: parameters,
                 success: { ( result: SDResponse) in
                     if result.success == true {
@@ -244,9 +244,9 @@ public class SpaceDog {
     
     //MARK: Settings
     
-    public func getSettings<T: Mappable>(settingsName: String) -> Promise<T> {
+    open func getSettings<T: Mappable>(_ settingsName: String) -> Promise<T> {
         return Promise { fufill, reject in
-            request(method: Method.GET, url: "\(self.settingsUrl)/\(settingsName)", auth: self.bearer(),
+            request(method: .get, url: "\(self.settingsUrl)/\(settingsName)", auth: self.bearer(),
                 success: { (settings: T) in
                     fufill(settings)
                 }, error: { (error: SDException) in
@@ -258,9 +258,9 @@ public class SpaceDog {
     
     //MARK: SMS
     
-    public func sendSMS(templateName: String, parameters: [String: AnyObject]) -> Promise<SDResponse> {
+    open func sendSMS(_ templateName: String, parameters: [String: Any]) -> Promise<SDResponse> {
         return Promise { fufill, reject in
-            request(method: Method.POST, url: "\(self.smsUrl)/\(templateName)", body: parameters, auth: self.bearer(),
+            request(method: .post, url: "\(self.smsUrl)/\(templateName)", body: parameters, auth: self.bearer(),
                 success: { (response: SDResponse) in
                     fufill(response)
                 }, error: { (error: SDException) in
@@ -271,9 +271,9 @@ public class SpaceDog {
     
     //MARK: Mail
 
-    public func sendMail(templateName: String, parameters: [String: AnyObject]) -> Promise<SDResponse> {
+    open func sendMail(_ templateName: String, parameters: [String: Any]) -> Promise<SDResponse> {
         return Promise { fufill, reject in
-            request(method: Method.POST, url: "\(self.mailUrl)/\(templateName)", body: parameters, auth: self.bearer(),
+            request(method: .post, url: "\(self.mailUrl)/\(templateName)", body: parameters, auth: self.bearer(),
                 success: { (response: SDResponse) in
                     fufill(response)
                 }, error: { (error: SDException) in
@@ -284,9 +284,9 @@ public class SpaceDog {
     
     //MARK: Stripe
 
-    public func getMyStripeCustomer() -> Promise<StripeCustomer> {
+    open func getMyStripeCustomer() -> Promise<StripeCustomer> {
         return Promise { fufill, reject in
-            request(method: Method.GET, url: "\(self.stripeUrl)/me", auth: self.bearer(),
+            request(method: .get, url: "\(self.stripeUrl)/me", auth: self.bearer(),
                 success: { (stripeCustomer: StripeCustomer) in
                     fufill(stripeCustomer)
             }, error: { (error: SDException) in
@@ -295,9 +295,9 @@ public class SpaceDog {
         }
     }
     
-    public func createStripeCustomer() -> Promise<StripeCustomer> {
+    open func createStripeCustomer() -> Promise<StripeCustomer> {
         return Promise { fufill, reject in
-            request(method: Method.POST, url: self.stripeUrl, auth: self.bearer(),
+            request(method: .post, url: self.stripeUrl, auth: self.bearer(),
                 success: {(stripeCustomer: StripeCustomer) in
                     fufill(stripeCustomer)
                 }, error: { (error) in
@@ -307,9 +307,9 @@ public class SpaceDog {
     }
 
     
-    public func createCard(cardToken token: String, cardLabel: String) -> Promise<Card> {
+    open func createCard(cardToken token: String, cardLabel: String) -> Promise<Card> {
         return Promise { fufill, reject in
-            request(method: Method.POST, url: "\(self.stripeUrl)/me/sources", auth: self.bearer(),
+            request(method: .post, url: "\(self.stripeUrl)/me/sources", auth: self.bearer(),
                 body: ["source": token, "description": cardLabel],
                 success: { (card: Card) in
                     fufill(card)
@@ -320,9 +320,9 @@ public class SpaceDog {
     }
 
     
-    public func deleteCard(cardId id: String) -> Promise<String> {
+    open func deleteCard(cardId id: String) -> Promise<String> {
         return Promise { fufill, reject in
-            request(method: Method.DELETE, url: "\(self.stripeUrl)/me/sources/\(id)", auth: self.bearer(),
+            request(method: .delete, url: "\(self.stripeUrl)/me/sources/\(id)", auth: self.bearer(),
                 success: { (card: Card) in
                     fufill(card.id ?? "")
                 }, error:{ (error) in
@@ -333,20 +333,20 @@ public class SpaceDog {
     
     //MARK: SpaceDog Entities
     
-    public func get<T: Mappable>(entity entity: String, entityId: String, success: (T) -> Void, error: (SDException) -> Void) {
+    open func get<T: Mappable>(entity: String, entityId: String, success: @escaping (T) -> Void, error: @escaping (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)/\(entityId)"
         self.request(
-            method: Method.GET,
+            method: .get,
             url: url,
             auth: self.bearer(),
             success: success,
             error: error)
     }
     
-    public func create<T: Mappable>(entity entity: String, value: T, success: (SDResponse) -> Void, error: (SDException) -> Void) {
+    open func create<T: Mappable>(entity: String, value: T, success: (SDResponse) -> Void, error: (SDException) -> Void) {
         let url = "\(self.dataUrl)/\(entity)"
         self.request(
-            method: Method.POST,
+            method: .post,
             url: url,
             auth: self.bearer(),
             body: value.toJSON(),
@@ -354,12 +354,12 @@ public class SpaceDog {
             error: error)
     }
     
-    public func update<T: Mappable>(entity entity: String, entityId: String, value: T, strictVersioning version: Int? = nil, success: (SDResponse) -> Void, error: (SDException) -> Void) {
+    open func update<T: Mappable>(entity: String, entityId: String, value: T, strictVersioning version: Int? = nil, success: (SDResponse) -> Void, error: (SDException) -> Void) {
         var url = "\(self.dataUrl)/\(entity)/\(entityId)"
         
         if let version = version { url += "?version=\(version)"}
         self.request(
-            method: Method.PUT,
+            method: .put,
             url: url,
             auth: self.bearer(),
             body: value.toJSON(),
@@ -367,12 +367,12 @@ public class SpaceDog {
             error: error)
     }
     
-    public func update(entity entity: String, entityId: String, partial: [String : AnyObject], strictVersioning version: Int? = nil, success: (SDResponse) -> Void, error: (SDException) -> Void) {
+    open func update(entity: String, entityId: String, partial: [String : Any], strictVersioning version: Int? = nil, success: (SDResponse) -> Void, error: (SDException) -> Void) {
         var url = "\(self.dataUrl)/\(entity)/\(entityId)"
         
         if let version = version { url += "?version=\(version)"}
         self.request(
-            method: Method.PUT,
+            method: .put,
             url: url,
             auth: self.bearer(),
             body: partial,
@@ -380,10 +380,10 @@ public class SpaceDog {
             error: error)
     }
     
-    public func search<T: Mappable>(entity entity: String, query: [String: AnyObject], success: (SDSearch<T>) -> Void, error: (SDException) -> Void) {
+    open func search<T: Mappable>(entity: String, query: [String: Any], success: (SDSearch<T>) -> Void, error: (SDException) -> Void) {
         let url = "\(self.searchUrl)/\(entity)"
         self.request(
-            method: Method.POST,
+            method: .post,
             url: url,
             auth: self.bearer(),
             body: query,
@@ -391,10 +391,10 @@ public class SpaceDog {
             error: error)
     }
     
-    public func batch(queries: [[String: AnyObject]], success: (SDBatch) -> Void, error: (SDException) -> Void) {
+    open func batch(_ queries: [[String: Any]], success: (SDBatch) -> Void, error: (SDException) -> Void) {
         let url = self.batchUrl
         self.request(
-            method: Method.POST,
+            method: .post,
             url: url,
             auth: self.bearer(),
             body: queries,
@@ -402,13 +402,13 @@ public class SpaceDog {
             error: error)
     }
     
-    private func request<T: Mappable>(
-        method method: Alamofire.Method,
+    fileprivate func request<T: Mappable>(
+        method: HTTPMethod,
         url: String,
         auth: String? = nil,
-        body: [String: AnyObject]? = nil,
-        success: (T) -> Void,
-        error: (SDException) -> Void) {
+        body: [String: Any]? = nil,
+        success: @escaping (T) -> Void,
+        error: @escaping (SDException) -> Void) {
         
         var headers = [String:String]()
         if let auth = auth {headers["Authorization"] = auth}
@@ -421,13 +421,13 @@ public class SpaceDog {
         
     }
 
-    private func request<T: Mappable>(
-        method method: Alamofire.Method,
+    fileprivate func request<T: Mappable>(
+        method: Alamofire.Method,
                url: String,
                auth: String? = nil,
-               body: [[String: AnyObject]],
-               success: (T) -> Void,
-               error: (SDException) -> Void) {
+               body: [[String: Any]],
+               success: @escaping (T) -> Void,
+               error: @escaping (SDException) -> Void) {
         
         var headers = [String:String]()
         if let auth = auth {headers["Authorization"] = auth}
@@ -438,7 +438,7 @@ public class SpaceDog {
         }
     }
 
-    private func bearer() -> String? {
+    fileprivate func bearer() -> String? {
         if let credentials = self.context.credentials {return "Bearer \(credentials.userToken)"}
         else {return nil}
     }
@@ -446,19 +446,19 @@ public class SpaceDog {
 
     //MARK: Encoding
     
-    typealias CustomEncoding = (URLRequestConvertible, [String:AnyObject]?) -> (NSMutableURLRequest, NSError?)
+    typealias CustomEncoding = (URLRequestConvertible, [String:Any]?) -> (NSMutableURLRequest, NSError?)
     
-    private func UTF8JSONEncoding(WithArray isArray: Bool = false) -> CustomEncoding {
+    fileprivate func UTF8JSONEncoding(WithArray isArray: Bool = false) -> CustomEncoding {
         let encoding: CustomEncoding = { URLRequest, parameters in
             
             let mutableURLRequest = URLRequest.URLRequest
             
-            var params: AnyObject
+            var params: Any
 
-            if let parameters = parameters?.first?.1 where isArray == true {
+            if let parameters = parameters?.first?.1, isArray == true {
                 params = parameters
             }
-            else if let parameters = parameters where isArray == false {
+            else if let parameters = parameters, isArray == false {
                 params = parameters
             }
             else {
@@ -488,12 +488,12 @@ public class SpaceDog {
     
     //MARK: Push notifications
     
-    public func install(forDevice deviceId: String?, success: () -> Void, error: (SDException) -> Void) {
+    open func install(forDevice deviceId: String?, success: @escaping () -> Void, error: @escaping (SDException) -> Void) {
         if deviceId == nil && self.context.installationId == nil {
             success()
             //error(SDException.DeviceNotReadyForInstallation)
         } else {
-            var parameters: [String:AnyObject] = ["appId": self.context.appId]
+            var parameters: [String:Any] = ["appId": self.context.appId as Any]
             if let token = deviceId {
                 parameters["token"] = token
                 self.context.deviceId = token
@@ -516,16 +516,16 @@ public class SpaceDog {
                 self.getInstallation(installationId).then({ (installation: SDInstallation) -> Void in
                     
                     if let itags = installation.tags {
-                        let extraTags = itags.flatMap({ (tag: SDTag) -> [String: AnyObject]? in
+                        let extraTags = itags.flatMap({ (tag: SDTag) -> [String: Any]? in
                             return tag.key != "credentialsId" ? tag.toJSON() : nil
                         })
-                        var tags = parameters["tags"] as! [[String: AnyObject]]
+                        var tags = parameters["tags"] as! [[String: Any]]
                         tags += extraTags
                         parameters["tags"] = tags
                     }
                     
                     self.request(
-                        method: Method.PUT,
+                        method: .put,
                         url: "\(self.installationUrl)/\(installationId)",
                         body: parameters,
                         success: {(r: SDResponse) in success()},
@@ -553,7 +553,7 @@ public class SpaceDog {
         
             } else {
                 self.request(
-                    method: Method.POST,
+                    method: .post,
                     url: self.installationUrl,
                     body: parameters,
                     success: {(result: SDResponse) in
@@ -570,16 +570,16 @@ public class SpaceDog {
         }
     }
     
-    public func sendPushNotification(appId: String, message: [String: AnyObject], tags: [[String:String]], success: (Void) -> Void, error: (SDException) -> Void) {
+    open func sendPushNotification(_ appId: String, message: [String: Any], tags: [[String:String]], success: @escaping (Void) -> Void, error: (SDException) -> Void) {
         
         #if DEBUG
-            let body: [String: AnyObject] = ["appId": appId, "message": ["APNS_SANDBOX": message], "pushService": "APNS_SANDBOX", "tags": tags]
+            let body: [String: Any] = ["appId": appId, "message": ["APNS_SANDBOX": message], "pushService": "APNS_SANDBOX", "tags": tags]
         #else
-            let body: [String: AnyObject] = ["appId": appId, "message": ["APNS": message], "pushService": "APNS", "tags": tags]
+            let body: [String: Any] = ["appId": appId as Any, "message": ["APNS": message], "pushService": "APNS", "tags": tags]
         #endif
         
         self.request(
-            method: Method.POST,
+            method: .post,
             url: self.pushUrl,
             auth: self.bearer(),
             body: body,
@@ -588,10 +588,10 @@ public class SpaceDog {
     }
     
 
-    public func createTag(installationId: String, key: String, value: String) -> Promise<SDResponse> {
+    open func createTag(_ installationId: String, key: String, value: String) -> Promise<SDResponse> {
         return Promise { fufill, reject in
             self.request(
-                method: Method.POST,
+                method: .post,
                 url: "\(self.installationUrl)/\(installationId)/tags",
                 body: ["key": key, "value": value],
                 success: {(r: SDResponse) in
@@ -602,10 +602,10 @@ public class SpaceDog {
     }
 
     
-    public func updateTags(installationId: String, parameters: [[String: AnyObject]]) -> Promise<SDResponse> {
+    open func updateTags(_ installationId: String, parameters: [[String: Any]]) -> Promise<SDResponse> {
         return Promise { fufill, reject in
             self.request(
-                method: Method.PUT,
+                method: .put,
                 url: "\(self.installationUrl)/\(installationId)/tags",
                 body: parameters,
                 success: {(r: SDResponse) in
@@ -615,10 +615,10 @@ public class SpaceDog {
         }
     }
     
-    public func deleteTag(installationId: String, key: String, value: String) -> Promise<SDResponse> {
+    open func deleteTag(_ installationId: String, key: String, value: String) -> Promise<SDResponse> {
         return Promise { fufill, reject in
             self.request(
-                method: Method.DELETE,
+                method: .delete,
                 url: "\(self.installationUrl)/\(installationId)/tags",
                 body: ["key": key, "value": value],
                 success: {(r: SDResponse) in
@@ -629,9 +629,9 @@ public class SpaceDog {
     }
     
     
-    public func getInstallation(installationId: String) -> Promise<SDInstallation> {
+    open func getInstallation(_ installationId: String) -> Promise<SDInstallation> {
         return Promise { fufill, reject in
-            request(method: Method.GET, url: "\(self.installationUrl)/\(installationId)",
+            request(method: .get, url: "\(self.installationUrl)/\(installationId)",
                 success: { (installation: SDInstallation) in
                     fufill(installation)
                 }, error: reject)
@@ -639,7 +639,7 @@ public class SpaceDog {
     }
     
     
-    private func handleResponse<T: Mappable>(response: Response<AnyObject, NSError>, success: (T) -> Void, error: (SDException) -> Void) {
+    fileprivate func handleResponse<T: Mappable>(_ response: DataResponse<Any>, success: (T) -> Void, error: (SDException) -> Void) {
         self.debug(response)
         if let httpresponse = response.response {
             switch httpresponse.statusCode {
@@ -653,7 +653,7 @@ public class SpaceDog {
                     error(SDException.BadRequest(code: badRequestCode))
                 }
                 else {
-                    error(SDException.BadRequest(code: BadRequestCode.unhandledErrorCode))
+                    error(SDException.badRequest(code: BadRequestCode.unhandledErrorCode))
                 }
             case 401 :
                 if let res = Mapper<SDResponse>().map(response.result.value),
@@ -662,35 +662,35 @@ public class SpaceDog {
                         error(SDException.Unauthorized(code: unauthorizedCode))
                 }
                 else {
-                    error(SDException.Unauthorized(code: UnauthorizedCode.invalidAccessToken))
+                    error(SDException.unauthorized(code: UnauthorizedCode.invalidAccessToken))
                 }
             case 403 :
-                error(SDException.Forbidden)
+                error(SDException.forbidden)
             case 404 :
-                error(SDException.NotFound)
+                error(SDException.notFound)
             case 500 :
-                error(SDException.ServerFailed)
+                error(SDException.serverFailed)
             default:
                 error(SDException.UnhandledHttpError(code: httpresponse.statusCode))
             }
         } else if let exception = response.result.error {
             error(SDException.Unreachable(reason: exception.localizedDescription))
         } else {
-            error(SDException.Unreachable(reason: "Unknown response state"))
+            error(SDException.unreachable(reason: "Unknown response state"))
         }
     }
     
-    private func debug(response: Response<AnyObject, NSError>) {
-        if let method = response.request?.HTTPMethod, url = response.request?.URLString {
+    fileprivate func debug(_ response: DataResponse<Any>) {
+        if let method = response.request?.HTTPMethod, let url = response.request?.URLString {
             if let httpResponse = response.response {
                 print("\(method) \(url) \(httpResponse.statusCode)")
             } else {
                 print("\(method) \(url) FAILED")
             }
-            if let data = response.request?.HTTPBody, requestData = String(data: data, encoding: NSUTF8StringEncoding) {
+            if let data = response.request?.HTTPBody, let requestData = String(data: data, encoding: String.Encoding.utf8) {
                 print("REQUEST:\n\(requestData)")
             }
-            if let data = response.data, responseData = String(data: data, encoding: NSUTF8StringEncoding) {
+            if let data = response.data, let responseData = String(data: data, encoding: String.Encoding.utf8) {
                 print("RESPONSE:\n\(responseData)")
             }
         }

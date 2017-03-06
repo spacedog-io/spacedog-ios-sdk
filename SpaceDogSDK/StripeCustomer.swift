@@ -9,26 +9,26 @@
 import Foundation
 import ObjectMapper
 
-public class StripeCustomer: Mappable {
+open class StripeCustomer: Mappable {
     
-    public var id: String?
-    public var email: String?
-    public var defaultSource: String?
-    public var cards: [Card]?
+    open var id: String?
+    open var email: String?
+    open var defaultSource: String?
+    open var cards: [Card]?
     
     public init() {}
     
-    required public init?(_ map: Map) {
+    required public init?(map: Map) {
     }
     
-    public func mapping(map: Map) {
+    open func mapping(map: Map) {
         id              <- map["id"]
         email           <- map["email"]
         defaultSource   <- map["default_source"]
         cards           <- map["sources.data"]
     }
     
-    public func getDefaultCard() -> Card? {
+    open func getDefaultCard() -> Card? {
         let defautSourceId = self.defaultSource ?? ""
         return self.cards?.filter({ $0.id == defautSourceId }).first
     }

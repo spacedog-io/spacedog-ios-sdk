@@ -9,17 +9,17 @@
 import Foundation
 import ObjectMapper
 
-public class SDResponse: Mappable {
+open class SDResponse: Mappable {
     
-    public var success: Bool?
-    public var status: Int?
-    public var id: String?
-    public var type: String?
-    public var location: String?
-    public var version: Int?
-    public var error: SDError?
+    open var success: Bool?
+    open var status: Int?
+    open var id: String?
+    open var type: String?
+    open var location: String?
+    open var version: Int?
+    open var error: SDError?
     
-    required public init?(_ map: Map) {
+    required public init?(map: Map) {
         
     }
     
@@ -31,7 +31,7 @@ public class SDResponse: Mappable {
         self.error = error
     }
     
-    public func mapping(map: Map) {
+    open func mapping(map: Map) {
         
         success    <- map["success"]
         status     <- map["status"]

@@ -8,103 +8,103 @@
 
 import Foundation
 
-public class Query {
+open class Query {
 
     public enum Order: String {
         case Asc = "asc", Desc = "desc"
     }
     
-    private var map: [String: AnyObject]
+    fileprivate var map: [String: Any]
     
     public init() {
-        self.map = [String: AnyObject]()
+        self.map = [String: Any]()
     }
     
-    public func limit(size: Int) -> Query {
-        map["size"] = size
+    open func limit(_ size: Int) -> Query {
+        map["size"] = size as Any?
         return self
     }
 
-    public func source(source: Bool) -> Query {
-        self.map["_source"] = source
+    open func source(_ source: Bool) -> Query {
+        self.map["_source"] = source as Any?
         return self
     }
     
-    public func method(method: String) -> Query {
-        self.map["method"] = method
+    open func method(_ method: String) -> Query {
+        self.map["method"] = method as Any?
         return self
     }
     
-    public func path(path: String) -> Query {
-        self.map["path"] = path
+    open func path(_ path: String) -> Query {
+        self.map["path"] = path as Any?
         return self
     }
     
-    public func content(content: [String: AnyObject]) -> Query {
-        self.map["content"] = content
+    open func content(_ content: [String: Any]) -> Query {
+        self.map["content"] = content as Any?
         return self
     }
     
-    public func closestTo(path path: String, lat: Double, lng: Double) -> Query {
+    open func closestTo(path: String, lat: Double, lng: Double) -> Query {
         self.map["sort"] = [
             ["_geo_distance" : ["order": "asc", "unit": "km", "distance_type": "plane", path : ["lat" : lat , "lon" : lng]]]
         ]
         return self
     }
     
-    public func sort(path path: String, order: Order = Order.Asc) -> Query {
+    open func sort(path: String, order: Order = Order.Asc) -> Query {
         self.map["sort"] = [[path: ["order": order.rawValue]]]
         return self
     }
     
-    public func term(term: [String: [String: String]]) -> Query {
-        self.map["query"] = term
+    open func term(_ term: [String: [String: String]]) -> Query {
+        self.map["query"] = term as AnyObject?
         return self
     }
     
-    public func terms(terms: [String: [String: [String]]]) -> Query {
-        self.map["query"] = terms
+    open func terms(_ terms: [String: [String: [String]]]) -> Query {
+        self.map["query"] = terms as AnyObject?
         return self
     }
     
-    public func filter(filters: [String: AnyObject]...) -> Query {
+    open func filter(_ filters: [String: Any]...) -> Query {
         self.map["query"] = ["bool" : ["filter" : filters]]
         return self
     }
     
-    public func combinaison(must must: [String: [String: String]], mustNot: [String: [String: String]]) -> Query {
+    open func combinaison(must: [String: [String: String]], mustNot: [String: [String: String]]) -> Query {
         self.map["query"] = ["bool" : ["must" : [must], "must_not": [mustNot]]]
         return self
     }
     
-    public func combinaison(must must: [[String: [String: String]]], mustNot: [[String: [String: String]]]) -> Query {
+    open func combinaison(must: [[String: [String: String]]], mustNot: [[String: [String: String]]]) -> Query {
         self.map["query"] = ["bool" : ["must" : must, "must_not": mustNot]]
         return self
     }
     
-    public func must(must: [String: [String: String]]...) -> Query {
+    open func must(_ must: [String: [String: String]]...) -> Query {
         self.map["query"] = ["bool" : ["must" : must]]
         return self
     }
     
-    public func build() -> [String: AnyObject] {
+    open func build() -> [String: Any] {
         return self.map
     }
 
     
-    public static func term(path path: String, value: String) -> [String: [String: String]] {
+    open static func term(path: String, value: String) -> [String: [String: String]] {
         return ["term" : [path : value]]
     }
     
-    public static func terms(path path: String, values: [String]) -> [String: [String: [String]]] {
+    open static func terms(path: String, values: [String]) -> [String: [String: [String]]] {
         return ["terms" : [path : values]]
     }
     
-    public static func exists(path path: String) -> [String: [String: String]] {
+    open static func exists(path: String) -> [String: [String: String]] {
         return ["exists" : ["field" : path]]
     }
     
-    public static func range(path path: String, comparator: String, compareTo: String) -> [String: [String: [String: String]]] {
+    open static func range(path: String, comparator: String, compareTo: String) -> [String: [String: [String: String]]] {
         return ["range" : [path : [comparator : compareTo]]]
     }
 }

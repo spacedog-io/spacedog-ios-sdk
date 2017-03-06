@@ -9,18 +9,18 @@
 import Foundation
 import ObjectMapper
 
-public class SDBatch: Mappable {
+open class SDBatch: Mappable {
     
-    public var success: Bool?
-    public var status: Int?
-    public var responses: [AnyObject]?
-    public var error: SDError?
+    open var success: Bool?
+    open var status: Int?
+    open var responses: [AnyObject]?
+    open var error: SDError?
     
-    required public init?(_ map: Map) {
+    required public init?(map: Map) {
         
     }
     
-    public func mapping(map: Map) {
+    open func mapping(map: Map) {
         success       <- map["success"]
         status        <- map["status"]
         responses     <- map["responses"]

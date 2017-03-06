@@ -8,7 +8,7 @@
 
 import Foundation
 
-public class SDContext : CustomStringConvertible {
+open class SDContext : CustomStringConvertible {
     
     static let InstanceId = "InstanceId"
     static let AccessToken = "AccessToken"
@@ -30,19 +30,19 @@ public class SDContext : CustomStringConvertible {
         self.appId = appId
     }
     
-    public func setLogged(with credentials: SDCredentials) -> Void {
+    open func setLogged(with credentials: SDCredentials) -> Void {
         self.credentials = credentials
     }
     
-    public func isLogged() -> Bool {
+    open func isLogged() -> Bool {
         return self.credentials != nil
     }
     
-    public func setLoggedOut() -> Void {
+    open func setLoggedOut() -> Void {
         self.credentials = nil
     }
     
-    public var description: String {
+    open var description: String {
         return "{instanceId: \(instanceId), credentials: \(credentials?.description ?? "nil"), installationId: \(installationId ?? "nil"), deviceId: \(deviceId ?? "nil")}"
     }
 }

@@ -9,17 +9,17 @@
 import Foundation
 import ObjectMapper
 
-public class SDSession: Mappable {
+open class SDSession: Mappable {
     
     var accessToken: String?
     var expiresIn: Int?
     var credentialsId: String?
     var credentialsEmail: String?
     
-    required public init?(_ map: Map) {
+    required public init?(map: Map) {
     }
     
-    public func mapping(map: Map) {
+    open func mapping(map: Map) {
         accessToken     <- map["accessToken"]
         expiresIn       <- map["expiresIn"]
         credentialsId   <- map["credentials.id"]

@@ -9,14 +9,14 @@
 import Foundation
 import ObjectMapper
 
-public class SDError: Mappable {
+open class SDError: Mappable {
     
-    public var type: String?
-    public var message: String?
-    public var cause: String?
-    public var code: String?
+    open var type: String?
+    open var message: String?
+    open var cause: String?
+    open var code: String?
 
-    required public init?(_ map: Map) {
+    required public init?(map: Map) {
     }
     
     public init() {}
@@ -27,7 +27,7 @@ public class SDError: Mappable {
     }
     
     
-    public func mapping(map: Map) {
+    open func mapping(map: Map) {
         type        <- map["type"]
         message     <- map["message"]
         cause       <- map["cause.message"]

@@ -9,17 +9,17 @@
 import Foundation
 import ObjectMapper
 
-public class SDSearch<T: Mappable>: Mappable {
+open class SDSearch<T: Mappable>: Mappable {
     
-    public var took: Int?
-    public var total: Int?
-    public var results: [T]?
+    open var took: Int?
+    open var total: Int?
+    open var results: [T]?
 
-    required public init?(_ map: Map) {
+    required public init?(map: Map) {
         
     }
     
-    public func mapping(map: Map) {
+    open func mapping(map: Map) {
         took   <- map["took"]
         total   <- map["total"]
         results   <- map["results"]

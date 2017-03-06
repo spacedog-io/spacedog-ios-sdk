@@ -9,14 +9,14 @@
 import Foundation
 
 
-public class SDCredentials : CustomStringConvertible {
+open class SDCredentials : CustomStringConvertible {
     let userId: String
     let userToken: String
     let userEmail: String
     let expiresIn: Int
-    let acquired: NSDate
+    let acquired: Date
     
-    public init(userId: String, userToken: String, userEmail: String, expiresIn: Int, acquired: NSDate) {
+    public init(userId: String, userToken: String, userEmail: String, expiresIn: Int, acquired: Date) {
         self.userId = userId
         self.userToken = userToken
         self.userEmail = userEmail
@@ -24,7 +24,7 @@ public class SDCredentials : CustomStringConvertible {
         self.acquired = acquired
     }
     
-    public var description: String {
+    open var description: String {
         return "{userId: \(userId), userToken: \(userToken), userEmail: \(userEmail), expiresIn: \(expiresIn), acquired: \(acquired) }"
     }
 }

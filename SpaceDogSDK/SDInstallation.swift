@@ -9,20 +9,20 @@
 import Foundation
 import ObjectMapper
 
-public class SDInstallation: Mappable {
+open class SDInstallation: Mappable {
     
-    public var pushService: String?
-    public var appId: String?
-    public var token: String?
-    public var endpoint: String?
-    public var tags: [SDTag]?
-    public var meta: SDMetadata?
+    open var pushService: String?
+    open var appId: String?
+    open var token: String?
+    open var endpoint: String?
+    open var tags: [SDTag]?
+    open var meta: SDMetadata?
     
-    required public init?(_ map: Map) {
+    required public init?(map: Map) {
         
     }
     
-    public func mapping(map: Map) {
+    open func mapping(map: Map) {
         pushService <- map["pushService"]
         appId       <- map["appId"]
         token       <- map["token"]
@@ -32,16 +32,16 @@ public class SDInstallation: Mappable {
     }
 }
 
-public class SDTag: Mappable {
+open class SDTag: Mappable {
     
-    public var key: String?
-    public var value: String?
+    open var key: String?
+    open var value: String?
     
-    required public init?(_ map: Map) {
+    required public init?(map: Map) {
         
     }
     
-    public func mapping(map: Map) {
+    open func mapping(map: Map) {
         key     <- map["key"]
         value   <- map["value"]
     }
