@@ -53,6 +53,7 @@ public class SpaceDog {
     let settingsUrl: String
     let smsUrl: String
     let mailUrl: String
+    let serviceUrl: String
     
     let context: SDContext
     let manager: Alamofire.Manager
@@ -71,6 +72,7 @@ public class SpaceDog {
         self.settingsUrl = "\(self.baseUrl)/1/settings"
         self.smsUrl = "\(self.baseUrl)/1/sms/template"
         self.mailUrl = "\(self.baseUrl)/1/mail/template"
+        self.serviceUrl = "\(self.baseUrl)/1/service"
 
         let configuration = NSURLSessionConfiguration.defaultSessionConfiguration()
         configuration.timeoutIntervalForResource = 60
@@ -255,6 +257,29 @@ public class SpaceDog {
         }
     }
     
+    //MARK: Service
+    
+    public func postService<T: Mappable>(serviceName name: String, parameters: [String: AnyObject]) -> Promise<T> {
+        return Promise { fufill, reject in
+            request(method: Method.POST, url: "\(self.serviceUrl)/\(name)", body: parameters, auth: self.bearer(),
+                success: { (response: T) in
+                    fufill(response)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
+    
+    public func deleteService<T: Mappable>(serviceName name: String, urlParameters url: String) -> Promise<T> {
+        return Promise { fufill, reject in
+            request(method: Method.DELETE, url: "\(self.serviceUrl)/\(name)/\(url)", auth: self.bearer(),
+                success: { (response: T) in
+                    fufill(response)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
     
     //MARK: SMS
     
