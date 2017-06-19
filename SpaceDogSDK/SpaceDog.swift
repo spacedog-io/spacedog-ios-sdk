@@ -54,6 +54,7 @@ public class SpaceDog {
     let smsUrl: String
     let mailUrl: String
     let serviceUrl: String
+    let serviceShortUrl: String
     
     let context: SDContext
     let manager: Alamofire.Manager
@@ -73,6 +74,8 @@ public class SpaceDog {
         self.smsUrl = "\(self.baseUrl)/1/sms/template"
         self.mailUrl = "\(self.baseUrl)/1/mail/template"
         self.serviceUrl = "\(self.baseUrl)/1/service"
+        self.serviceShortUrl = "/1/service"
+
 
         let configuration = NSURLSessionConfiguration.defaultSessionConfiguration()
         configuration.timeoutIntervalForResource = 60
@@ -259,6 +262,100 @@ public class SpaceDog {
     
     //MARK: Service
     
+    public func post<T: Mappable>(withUrl url: String, parameters: [String: AnyObject]? = nil) -> Promise<T> {
+        return Promise { fufill, reject in
+            request(method: Method.POST, url: self.baseUrl + url, body: parameters, auth: self.bearer(),
+                success: { (response: T) in
+                    fufill(response)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
+    
+    public func post<T: Mappable>(withUrl url: String, parameters: [[String: AnyObject]]) -> Promise<T> {
+        return Promise { fufill, reject in
+            request(method: Method.POST, url: self.baseUrl + url, auth: self.bearer(), body: parameters,
+                success: { (response: T) in
+                    fufill(response)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
+    
+    public func put<T: Mappable>(withUrl url: String, parameters: [String: AnyObject]? = nil) -> Promise<T> {
+        return Promise { fufill, reject in
+            request(method: Method.PUT, url: self.baseUrl + url, body: parameters, auth: self.bearer(),
+                success: { (response: T) in
+                    fufill(response)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
+    
+    public func put<T: Mappable>(withUrl url: String, parameters: [[String: AnyObject]]) -> Promise<T> {
+        return Promise { fufill, reject in
+            request(method: Method.PUT, url: self.baseUrl + url, auth: self.bearer(), body: parameters,
+                success: { (response: T) in
+                    fufill(response)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
+    
+    public func delete<T: Mappable>(withUrl url: String, parameters: [String: AnyObject]? = nil) -> Promise<T> {
+        return Promise { fufill, reject in
+            request(method: Method.DELETE, url: self.baseUrl + url, body: parameters, auth: self.bearer(),
+                success: { (response: T) in
+                    fufill(response)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
+    
+    public func delete<T: Mappable>(withUrl url: String, parameters: [[String: AnyObject]]) -> Promise<T> {
+        return Promise { fufill, reject in
+            request(method: Method.DELETE, url: self.baseUrl + url, auth: self.bearer(), body: parameters,
+                success: { (response: T) in
+                    fufill(response)
+                }, error: { (error: SDException) in
+                    reject(error)
+            })
+        }
+    }
+    
+    public enum HttpMethod {
+       case POST, PUT, DELETE
+    }
+    
+    public func startService<T: Mappable>(method method: HttpMethod, servicePath path: String, parameters: [String: AnyObject]? = nil) -> Promise<T> {
+        if method == .POST {
+            return post(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
+        }
+        else if method == .PUT {
+            return put(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
+        }
+        else {
+            return delete(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
+        }
+    }
+    
+    public func startService<T: Mappable>(method method: HttpMethod, servicePath path: String, parameters: [[String: AnyObject]]) -> Promise<T> {
+        if method == .POST {
+            return post(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
+        }
+        else if method == .PUT {
+            return put(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
+        }
+        else {
+            return delete(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
+        }
+    }
+
     public func postService<T: Mappable>(serviceName name: String, parameters: [String: AnyObject]) -> Promise<T> {
         return Promise { fufill, reject in
             request(method: Method.POST, url: "\(self.serviceUrl)/\(name)", body: parameters, auth: self.bearer(),
