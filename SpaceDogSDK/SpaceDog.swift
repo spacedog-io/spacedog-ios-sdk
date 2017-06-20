@@ -54,7 +54,6 @@ public class SpaceDog {
     let smsUrl: String
     let mailUrl: String
     let serviceUrl: String
-    let serviceShortUrl: String
     
     let context: SDContext
     let manager: Alamofire.Manager
@@ -73,8 +72,7 @@ public class SpaceDog {
         self.settingsUrl = "\(self.baseUrl)/1/settings"
         self.smsUrl = "\(self.baseUrl)/1/sms/template"
         self.mailUrl = "\(self.baseUrl)/1/mail/template"
-        self.serviceUrl = "\(self.baseUrl)/1/service"
-        self.serviceShortUrl = "/1/service"
+        self.serviceUrl = "/1/service"
 
 
         let configuration = NSURLSessionConfiguration.defaultSessionConfiguration()
@@ -262,7 +260,11 @@ public class SpaceDog {
     
     //MARK: Service
     
-    public func post<T: Mappable>(withUrl url: String, parameters: [String: AnyObject]? = nil) -> Promise<T> {
+    public enum HttpMethod {
+        case POST, PUT, DELETE
+    }
+
+    public func post<T: Mappable>(withUrl url: String, parameters: AnyObject? = nil) -> Promise<T> {
         return Promise { fufill, reject in
             request(method: Method.POST, url: self.baseUrl + url, body: parameters, auth: self.bearer(),
                 success: { (response: T) in
@@ -273,18 +275,7 @@ public class SpaceDog {
         }
     }
     
-    public func post<T: Mappable>(withUrl url: String, parameters: [[String: AnyObject]]) -> Promise<T> {
-        return Promise { fufill, reject in
-            request(method: Method.POST, url: self.baseUrl + url, auth: self.bearer(), body: parameters,
-                success: { (response: T) in
-                    fufill(response)
-                }, error: { (error: SDException) in
-                    reject(error)
-            })
-        }
-    }
-    
-    public func put<T: Mappable>(withUrl url: String, parameters: [String: AnyObject]? = nil) -> Promise<T> {
+    public func put<T: Mappable>(withUrl url: String, parameters: AnyObject? = nil) -> Promise<T> {
         return Promise { fufill, reject in
             request(method: Method.PUT, url: self.baseUrl + url, body: parameters, auth: self.bearer(),
                 success: { (response: T) in
@@ -295,18 +286,7 @@ public class SpaceDog {
         }
     }
     
-    public func put<T: Mappable>(withUrl url: String, parameters: [[String: AnyObject]]) -> Promise<T> {
-        return Promise { fufill, reject in
-            request(method: Method.PUT, url: self.baseUrl + url, auth: self.bearer(), body: parameters,
-                success: { (response: T) in
-                    fufill(response)
-                }, error: { (error: SDException) in
-                    reject(error)
-            })
-        }
-    }
-    
-    public func delete<T: Mappable>(withUrl url: String, parameters: [String: AnyObject]? = nil) -> Promise<T> {
+    public func delete<T: Mappable>(withUrl url: String, parameters: AnyObject? = nil) -> Promise<T> {
         return Promise { fufill, reject in
             request(method: Method.DELETE, url: self.baseUrl + url, body: parameters, auth: self.bearer(),
                 success: { (response: T) in
@@ -317,64 +297,16 @@ public class SpaceDog {
         }
     }
     
-    public func delete<T: Mappable>(withUrl url: String, parameters: [[String: AnyObject]]) -> Promise<T> {
-        return Promise { fufill, reject in
-            request(method: Method.DELETE, url: self.baseUrl + url, auth: self.bearer(), body: parameters,
-                success: { (response: T) in
-                    fufill(response)
-                }, error: { (error: SDException) in
-                    reject(error)
-            })
-        }
-    }
     
-    public enum HttpMethod {
-       case POST, PUT, DELETE
-    }
-    
-    public func startService<T: Mappable>(method method: HttpMethod, servicePath path: String, parameters: [String: AnyObject]? = nil) -> Promise<T> {
+    public func startService<T: Mappable>(method method: HttpMethod, servicePath path: String, parameters: AnyObject? = nil) -> Promise<T> {
         if method == .POST {
-            return post(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
+            return post(withUrl: "\(self.serviceUrl)/\(path)", parameters: parameters)
         }
         else if method == .PUT {
-            return put(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
+            return put(withUrl: "\(self.serviceUrl)/\(path)", parameters: parameters)
         }
         else {
-            return delete(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
-        }
-    }
-    
-    public func startService<T: Mappable>(method method: HttpMethod, servicePath path: String, parameters: [[String: AnyObject]]) -> Promise<T> {
-        if method == .POST {
-            return post(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
-        }
-        else if method == .PUT {
-            return put(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
-        }
-        else {
-            return delete(withUrl: "\(self.serviceShortUrl)/\(path)", parameters: parameters)
-        }
-    }
-
-    public func postService<T: Mappable>(serviceName name: String, parameters: [String: AnyObject]) -> Promise<T> {
-        return Promise { fufill, reject in
-            request(method: Method.POST, url: "\(self.serviceUrl)/\(name)", body: parameters, auth: self.bearer(),
-                success: { (response: T) in
-                    fufill(response)
-                }, error: { (error: SDException) in
-                    reject(error)
-            })
-        }
-    }
-    
-    public func deleteService<T: Mappable>(serviceName name: String, urlParameters url: String) -> Promise<T> {
-        return Promise { fufill, reject in
-            request(method: Method.DELETE, url: "\(self.serviceUrl)/\(name)/\(url)", auth: self.bearer(),
-                success: { (response: T) in
-                    fufill(response)
-                }, error: { (error: SDException) in
-                    reject(error)
-            })
+            return delete(withUrl: "\(self.serviceUrl)/\(path)", parameters: parameters)
         }
     }
     
@@ -526,36 +458,28 @@ public class SpaceDog {
     
     private func request<T: Mappable>(
         method method: Alamofire.Method,
-        url: String,
-        auth: String? = nil,
-        body: [String: AnyObject]? = nil,
-        success: (T) -> Void,
-        error: (SDException) -> Void) {
-        
-        var headers = [String:String]()
-        if let auth = auth {headers["Authorization"] = auth}
-        var encoding = ParameterEncoding.URL
-        if body != nil {encoding = ParameterEncoding.Custom(UTF8JSONEncoding())}
-        
-        manager.request(method, url, parameters: body, encoding: encoding, headers: headers).responseJSON { response in
-            self.handleResponse(response, success: success, error: error)
-        }
-        
-    }
-
-    private func request<T: Mappable>(
-        method method: Alamofire.Method,
                url: String,
                auth: String? = nil,
-               body: [[String: AnyObject]],
+               body: AnyObject? = nil,
                success: (T) -> Void,
                error: (SDException) -> Void) {
         
         var headers = [String:String]()
         if let auth = auth {headers["Authorization"] = auth}
-        let encoding = ParameterEncoding.Custom(UTF8JSONEncoding(WithArray: true))
+        var encoding = ParameterEncoding.URL
         
-        manager.request(method, url, parameters: ["array": body], encoding: encoding, headers: headers).responseJSON { response in
+        var params: [String: AnyObject]?
+        
+        if let b = body as? [String: AnyObject] {
+            encoding = ParameterEncoding.Custom(UTF8JSONEncoding())
+            params = b
+        }
+        else if let b = body as? [[String: AnyObject]] {
+            encoding = ParameterEncoding.Custom(UTF8JSONEncoding(WithArray: true))
+            params = ["array": b]
+        }
+        
+        manager.request(method, url, parameters: params, encoding: encoding, headers: headers).responseJSON { response in
             self.handleResponse(response, success: success, error: error)
         }
     }
@@ -692,6 +616,7 @@ public class SpaceDog {
         }
     }
     
+    //Only for iOS -> Todo: Android (GCM)
     public func sendPushNotification(appId: String, message: [String: AnyObject], tags: [[String:String]], success: (Void) -> Void, error: (SDException) -> Void) {
         
         #if DEBUG
